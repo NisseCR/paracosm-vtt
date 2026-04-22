@@ -1,7 +1,7 @@
 from pathlib import Path
 from typing import Any
 
-from app.models.state import SceneDefinition
+from app.models.library import SceneDefinition
 
 
 class SceneService:

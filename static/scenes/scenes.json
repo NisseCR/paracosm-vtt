@@ -1,0 +1,8 @@
+[
+  {
+    "id": "mountain_storm",
+    "name": "Mountain Storm",
+    "background": "gate.jpg",
+    "layers": ["wind.webm", "mountain.webm"]
+  }
+]

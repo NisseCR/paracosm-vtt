@@ -23,9 +23,13 @@ async def lifespan(app: FastAPI):
     app.state.app_state = AppState()
     app.state.audio_service = audio_service
     app.state.scene_service = scene_service
-    app.state.music_playlists = [playlist.__dict__ for playlist in audio_service.scan_music_playlists()]
-    app.state.ambience_folders = [folder.__dict__ for folder in audio_service.scan_ambience_folders()]
-    app.state.scenes = [scene.__dict__ for scene in scene_service.load_scenes()]
+    app.state.music_playlists = [
+        playlist.model_dump() for playlist in audio_service.scan_music_playlists()
+    ]
+    app.state.ambience_folders = [
+        folder.model_dump() for folder in audio_service.scan_ambience_folders()
+    ]
+    app.state.scenes = [scene.model_dump() for scene in scene_service.load_scenes()]
 
     yield
 
