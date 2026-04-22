@@ -1,7 +1,7 @@
 from pathlib import Path
 from typing import Any
 
-from app.models.library import SceneDefinition
+from app.models.library import SceneDefinition, SceneLayer
 
 
 class SceneService:
@@ -44,11 +44,60 @@ class SceneService:
                     id=scene["id"],
                     name=scene["name"],
                     background=self._to_static_url(scene["background"]),
-                    layers=[self._to_static_url(layer) for layer in scene.get("layers", [])],
+                    layers=[self._parse_layer(layer) for layer in scene.get("layers", [])],
                 )
             )
 
         return scenes
+
+    def _parse_layer(self, layer: Any) -> SceneLayer:
+        """
+        Convert a raw JSON layer entry into a SceneLayer model.
+
+        Args:
+            layer: A raw layer entry from the scene JSON file.
+
+        Returns:
+            A normalized scene layer model.
+        """
+        if isinstance(layer, str):
+            return SceneLayer(
+                src=self._to_static_url(layer),
+            )
+
+        src = layer["src"]
+        resolved_type = layer.get("type")
+        if resolved_type is None:
+            resolved_type = self._infer_layer_type(src)
+
+        return SceneLayer(
+            src=self._to_static_url(src),
+            type=resolved_type,
+            opacity=layer.get("opacity", 1.0),
+            brightness=layer.get("brightness", 1.0),
+            blend_mode=layer.get("blend_mode", "normal"),
+            transform=layer.get("transform"),
+            filter=layer.get("filter"),
+        )
+
+    def _infer_layer_type(self, asset_name: str) -> str:
+        """
+        Infer a layer type from the asset extension.
+
+        Args:
+            asset_name: A file name or relative asset path.
+
+        Returns:
+            The inferred layer type.
+        """
+        normalized_name = asset_name.replace("\\", "/")
+        suffix = Path(normalized_name).suffix.lower()
+
+        if suffix in self.VIDEO_EXTENSIONS:
+            return "video"
+        if suffix in self.IMAGE_EXTENSIONS:
+            return "image"
+        return "image"
 
     def _to_static_url(self, asset_name: str) -> str:
         """

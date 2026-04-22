@@ -135,6 +135,20 @@ async function initDisplayPage() {
   }
 
   /**
+   * Apply visual styling from a layer configuration.
+   *
+   * Args:
+   *   element: The DOM element representing a layer.
+   *   layer: The layer configuration.
+   */
+  function applyLayerStyles(element, layer) {
+    element.style.opacity = String(layer.opacity ?? 1.0);
+    element.style.filter = `brightness(${layer.brightness ?? 1.0})${layer.filter ? ` ${layer.filter}` : ""}`;
+    element.style.mixBlendMode = layer.blend_mode ?? "normal";
+    element.style.transform = layer.transform ?? "none";
+  }
+
+  /**
    * Render a scene definition into the stage.
    *
    * Args:
@@ -153,24 +167,28 @@ async function initDisplayPage() {
     }
 
     if (sceneLayers) {
-      scene.layers.forEach((layerUrl) => {
-        if (layerUrl.endsWith(".webm")) {
+      scene.layers.forEach((layer) => {
+        const isVideo = layer.type === "video" || layer.src.endsWith(".webm") || layer.src.endsWith(".mp4");
+
+        if (isVideo) {
           const video = document.createElement("video");
           video.className = "scene-layer-video";
-          video.src = layerUrl;
+          video.src = layer.src;
           video.autoplay = true;
           video.muted = true;
           video.loop = true;
           video.playsInline = true;
           video.setAttribute("aria-hidden", "true");
+          applyLayerStyles(video, layer);
           sceneLayers.appendChild(video);
           return;
         }
 
         const image = document.createElement("img");
         image.className = "scene-layer-image";
-        image.src = layerUrl;
+        image.src = layer.src;
         image.alt = `${scene.name} layer`;
+        applyLayerStyles(image, layer);
         sceneLayers.appendChild(image);
       });
     }
