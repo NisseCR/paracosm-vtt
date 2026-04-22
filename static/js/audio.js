@@ -13,7 +13,7 @@ class AudioEngine {
     this.masterGain = null;
 
     this.musicController = null;
-    this.musicTrackUrl = null;
+    this.musicPlaylistId = null;
 
     this.ambienceControllers = new Map();
 
@@ -72,8 +72,13 @@ class AudioEngine {
     const currentMusicPlaylist = state.current_music_playlist;
     const activeAmbiences = state.active_ambiences ?? {};
 
-    if (currentMusicPlaylist && resolvedAudio.musicTrackUrl) {
-      await this.setMusic(resolvedAudio.musicTrackUrl, currentMusicPlaylist.volume ?? 1.0, musicFadeSeconds);
+    if (currentMusicPlaylist && resolvedAudio.musicPlaylist) {
+      await this.setMusic(
+        currentMusicPlaylist.playlist_id,
+        resolvedAudio.musicPlaylist,
+        currentMusicPlaylist.volume ?? 1.0,
+        musicFadeSeconds
+      );
     } else {
       await this.clearMusic(musicFadeSeconds);
     }
@@ -82,35 +87,36 @@ class AudioEngine {
   }
 
   /**
-   * Update the current music track.
+   * Set or switch music playlist playback.
    *
    * Args:
-   *   trackUrl: The audio URL for the current music track.
+   *   playlistId: The selected playlist identifier.
+   *   playlist: The resolved playlist object.
    *   volume: The target volume.
    *   fadeSeconds: The fade duration in seconds.
    */
-  async setMusic(trackUrl, volume, fadeSeconds = this.defaultMusicFadeSeconds) {
+  async setMusic(playlistId, playlist, volume, fadeSeconds = this.defaultMusicFadeSeconds) {
     await this.ensureRunning();
 
-    if (!trackUrl) {
+    if (!playlistId || !playlist || !playlist.tracks || playlist.tracks.length === 0) {
       await this.clearMusic(fadeSeconds);
       return;
     }
 
     if (!this.musicController) {
-      this.musicController = new FadableTrackController(this.audioContext, this.masterGain, {
-        loop: true,
+      this.musicController = new PlaylistController(this.audioContext, this.masterGain, {
         kind: "music",
       });
-      this.musicTrackUrl = null;
+      this.musicPlaylistId = null;
     }
 
-    if (this.musicTrackUrl !== trackUrl) {
-      await this.musicController.setSource(trackUrl);
-      this.musicTrackUrl = trackUrl;
+    if (this.musicPlaylistId !== playlistId) {
+      this.musicPlaylistId = playlistId;
+      await this.musicController.switchPlaylist(playlist.tracks, volume ?? 1.0, fadeSeconds);
+      return;
     }
 
-    await this.musicController.fadeTo(volume ?? 1.0, fadeSeconds);
+    await this.musicController.setVolume(volume ?? 1.0, this.volumeFadeSeconds);
   }
 
   /**
@@ -150,22 +156,6 @@ class AudioEngine {
   }
 
   /**
-   * Set the music volume directly with a short smooth fade.
-   *
-   * Args:
-   *   volume: The new music volume.
-   */
-  async setMusicVolume(volume) {
-    await this.ensureRunning();
-
-    if (!this.musicController) {
-      return;
-    }
-
-    await this.musicController.fadeTo(volume, this.volumeFadeSeconds);
-  }
-
-  /**
    * Set the volume for a single ambience track.
    *
    * Args:
@@ -191,13 +181,13 @@ class AudioEngine {
    */
   async clearMusic(fadeSeconds = this.defaultMusicFadeSeconds) {
     if (!this.musicController) {
-      this.musicTrackUrl = null;
+      this.musicPlaylistId = null;
       return;
     }
 
-    await this.musicController.fadeOutAndStop(fadeSeconds);
+    await this.musicController.stopPlaylist(fadeSeconds);
     this.musicController = null;
-    this.musicTrackUrl = null;
+    this.musicPlaylistId = null;
   }
 
   /**
@@ -234,6 +224,173 @@ class AudioEngine {
     }
 
     return controller;
+  }
+}
+
+/**
+ * Play a shuffled playlist with auto-advance.
+ */
+class PlaylistController {
+  /**
+   * Create a new playlist controller.
+   *
+   * Args:
+   *   audioContext: The shared audio context.
+   *   outputNode: The node to connect into.
+   *   options: Playlist options.
+   */
+  constructor(audioContext, outputNode, options = {}) {
+    this.audioContext = audioContext;
+    this.outputNode = outputNode;
+    this.kind = options.kind ?? "playlist";
+
+    this.trackController = new FadableTrackController(this.audioContext, this.outputNode, {
+      loop: false,
+      kind: this.kind,
+    });
+
+    this.tracks = [];
+    this.queue = [];
+    this.currentTrackIndex = -1;
+    this.currentTrackUrl = null;
+    this.currentVolume = 1.0;
+    this.isStopping = false;
+    this.token = 0;
+  }
+
+  /**
+   * Switch to a new playlist and crossfade from the current track.
+   *
+   * Args:
+   *   tracks: The playlist track list.
+   *   targetVolume: The target volume.
+   *   fadeSeconds: The playlist switch fade duration.
+   */
+  async switchPlaylist(tracks, targetVolume, fadeSeconds) {
+    this.token += 1;
+    const switchToken = this.token;
+
+    this.tracks = Array.isArray(tracks) ? tracks.slice() : [];
+    this.queue = this.shuffleTracks(this.tracks);
+    this.currentTrackIndex = 0;
+    this.currentVolume = Number(targetVolume ?? 1.0);
+
+    if (this.queue.length === 0) {
+      await this.stopPlaylist(fadeSeconds);
+      return;
+    }
+
+    const nextTrack = this.queue[this.currentTrackIndex];
+
+    await this.trackController.fadeTo(0.0, fadeSeconds);
+    if (switchToken !== this.token) {
+      return;
+    }
+
+    await this.trackController.setSource(nextTrack.url);
+    if (switchToken !== this.token) {
+      return;
+    }
+
+    await this.trackController.fadeTo(this.currentVolume, fadeSeconds);
+    if (switchToken !== this.token) {
+      return;
+    }
+
+    this.bindTrackEnd(nextTrack);
+  }
+
+  /**
+   * Update playlist volume without changing the current track.
+   *
+   * Args:
+   *   volume: The new target volume.
+   *   fadeSeconds: The fade duration in seconds.
+   */
+  async setVolume(volume, fadeSeconds) {
+    this.currentVolume = Number(volume ?? 1.0);
+    await this.trackController.fadeTo(this.currentVolume, fadeSeconds);
+  }
+
+  /**
+   * Advance to the next track in the current shuffled order.
+   */
+  async playNextTrack() {
+    if (this.isStopping || this.queue.length === 0) {
+      return;
+    }
+
+    this.currentTrackIndex += 1;
+
+    if (this.currentTrackIndex >= this.queue.length) {
+      this.queue = this.shuffleTracks(this.tracks);
+      this.currentTrackIndex = 0;
+    }
+
+    const nextTrack = this.queue[this.currentTrackIndex];
+    await this.trackController.setSource(nextTrack.url);
+    await this.trackController.fadeTo(this.currentVolume, 0.15);
+    this.bindTrackEnd(nextTrack);
+  }
+
+  /**
+   * Stop the playlist and fade out the current track.
+   *
+   * Args:
+   *   fadeSeconds: The fade duration in seconds.
+   */
+  async stopPlaylist(fadeSeconds) {
+    this.isStopping = true;
+    this.token += 1;
+
+    await this.trackController.fadeOutAndStop(fadeSeconds);
+    this.isStopping = false;
+    this.queue = [];
+    this.tracks = [];
+    this.currentTrackIndex = -1;
+    this.currentTrackUrl = null;
+  }
+
+  /**
+   * Bind the end handler for the currently playing track.
+   *
+   * Args:
+   *   track: The track currently being played.
+   */
+  bindTrackEnd(track) {
+    this.currentTrackUrl = track.url;
+
+    if (!this.trackController.audioElement) {
+      return;
+    }
+
+    this.trackController.audioElement.onended = async () => {
+      if (this.isStopping) {
+        return;
+      }
+
+      await this.playNextTrack();
+    };
+  }
+
+  /**
+   * Shuffle a track list.
+   *
+   * Args:
+   *   tracks: The original track list.
+   *
+   * Returns:
+   *   A shuffled copy of the list.
+   */
+  shuffleTracks(tracks) {
+    const shuffled = tracks.slice();
+
+    for (let i = shuffled.length - 1; i > 0; i -= 1) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+    }
+
+    return shuffled;
   }
 }
 

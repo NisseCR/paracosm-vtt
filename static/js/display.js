@@ -25,16 +25,11 @@ async function initDisplayPage() {
     library.scenes.map((scene) => [scene.id, scene])
   );
 
-  const musicTrackMap = new Map();
+  const musicPlaylistMap = new Map(
+    library.music_playlists.map((playlist) => [playlist.id, playlist])
+  );
+
   const ambienceTrackMap = new Map();
-
-  library.music_playlists.forEach((playlist) => {
-    const firstTrack = playlist.tracks?.[0] ?? null;
-    if (firstTrack) {
-      musicTrackMap.set(playlist.id, firstTrack.url);
-    }
-  });
-
   library.ambience_folders.forEach((folder) => {
     folder.tracks.forEach((track) => {
       ambienceTrackMap.set(track.name, track.url);
@@ -327,7 +322,7 @@ async function initDisplayPage() {
    */
   function resolveAudioState(state) {
     const musicPlaylistId = state.current_music_playlist?.playlist_id ?? null;
-    const musicTrackUrl = musicPlaylistId ? musicTrackMap.get(musicPlaylistId) ?? null : null;
+    const musicPlaylist = musicPlaylistId ? musicPlaylistMap.get(musicPlaylistId) ?? null : null;
 
     const ambienceTrackUrls = {};
     Object.keys(state.active_ambiences ?? {}).forEach((ambienceId) => {
@@ -338,7 +333,7 @@ async function initDisplayPage() {
     });
 
     return {
-      musicTrackUrl,
+      musicPlaylist,
       ambienceTrackUrls,
     };
   }
