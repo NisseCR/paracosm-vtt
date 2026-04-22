@@ -25,6 +25,9 @@ async function initDisplayPage() {
     library.scenes.map((scene) => [scene.id, scene])
   );
 
+  const audioEngine = new window.AudioEngine();
+  await audioEngine.init();
+
   let currentState = {
     current_scene: null,
     current_music_playlist: null,
@@ -297,54 +300,91 @@ async function initDisplayPage() {
     isTransitioning = false;
   }
 
-  eventSource.addEventListener("state_snapshot", (event) => {
+  /**
+   * Apply audio state from the current shared application state.
+   *
+   * Args:
+   *   state: The latest known application state.
+   */
+  async function updateAudioFromState(state) {
+    const scene = state.current_scene ? sceneMap.get(state.current_scene.scene_id) ?? null : null;
+    const fadeSettings = state.fade_settings ?? {};
+
+    if (!scene) {
+      await audioEngine.clearMusic(Number(fadeSettings.music ?? 5.0));
+      await audioEngine.clearAmbiences(Number(fadeSettings.ambience ?? 10.0));
+      return;
+    }
+
+    const currentMusicPlaylist = state.current_music_playlist;
+    const activeAmbiences = state.active_ambiences ?? {};
+
+    await audioEngine.setMusic(currentMusicPlaylist, Number(fadeSettings.music ?? 5.0));
+    await audioEngine.setAmbiences(activeAmbiences, Number(fadeSettings.ambience ?? 10.0));
+
+    if (currentMusicPlaylist) {
+      await audioEngine.setMusicVolume(currentMusicPlaylist.volume ?? 1.0);
+    }
+
+    for (const [ambienceId, ambience] of Object.entries(activeAmbiences)) {
+      await audioEngine.setAmbienceVolume(ambienceId, ambience.volume ?? 1.0);
+    }
+  }
+
+  eventSource.addEventListener("state_snapshot", async (event) => {
     const data = JSON.parse(event.data);
     console.log("Initial state snapshot received:", data);
     currentState = data;
     renderState(currentState);
-    switchScene(currentState.current_scene?.scene_id ?? null);
+    await switchScene(currentState.current_scene?.scene_id ?? null);
+    await updateAudioFromState(currentState);
   });
 
-  eventSource.addEventListener("scene_changed", (event) => {
+  eventSource.addEventListener("scene_changed", async (event) => {
     const data = JSON.parse(event.data);
     console.log("Scene changed:", data);
     applyStatePatch({
       current_scene: data.scene,
     });
-    switchScene(data.scene?.scene_id ?? null);
+    await switchScene(data.scene?.scene_id ?? null);
+    await updateAudioFromState(currentState);
   });
 
-  eventSource.addEventListener("music_changed", (event) => {
+  eventSource.addEventListener("music_changed", async (event) => {
     const data = JSON.parse(event.data);
     console.log("Music changed:", data);
     applyStatePatch({
       current_music_playlist: data.music_playlist,
     });
+    await updateAudioFromState(currentState);
   });
 
-  eventSource.addEventListener("ambience_changed", (event) => {
+  eventSource.addEventListener("ambience_changed", async (event) => {
     const data = JSON.parse(event.data);
     console.log("Ambience changed:", data);
     applyStatePatch({
       active_ambiences: data.active_ambiences,
     });
+    await updateAudioFromState(currentState);
   });
 
-  eventSource.addEventListener("fade_settings_changed", (event) => {
+  eventSource.addEventListener("fade_settings_changed", async (event) => {
     const data = JSON.parse(event.data);
     console.log("Fade settings changed:", data);
     applyStatePatch({
       fade_settings: data.fade_settings,
     });
+    await updateAudioFromState(currentState);
   });
 
-  eventSource.addEventListener("volume_changed", (event) => {
+  eventSource.addEventListener("volume_changed", async (event) => {
     const data = JSON.parse(event.data);
     console.log("Volume changed:", data);
     applyStatePatch({
       current_music_playlist: data.music_playlist ?? currentState.current_music_playlist,
       active_ambiences: data.active_ambiences ?? currentState.active_ambiences,
     });
+    await updateAudioFromState(currentState);
   });
 
   eventSource.onerror = () => {
