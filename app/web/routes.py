@@ -49,3 +49,41 @@ async def display_page(request: Request) -> HTMLResponse:
         The rendered display page HTML response.
     """
     return templates.TemplateResponse("display.html", {"request": request})
+
+
+@router.get("/api/state", response_class=JSONResponse)
+async def get_state(request: Request) -> dict:
+    """
+    Return the current live application state.
+
+    Args:
+        request: The active HTTP request.
+
+    Returns:
+        A JSON object containing the shared app state.
+    """
+    state = request.app.state.app_state
+    return {
+        "current_scene_id": state.current_scene_id,
+        "current_music_playlist": state.current_music_playlist,
+        "active_ambiences": state.active_ambiences,
+        "fade_settings": state.fade_settings,
+    }
+
+
+@router.get("/api/library", response_class=JSONResponse)
+async def get_library(request: Request) -> dict:
+    """
+    Return the discovered scene and audio library data.
+
+    Args:
+        request: The active HTTP request.
+
+    Returns:
+        A JSON object containing music, ambience, and scene catalogs.
+    """
+    return {
+        "music_playlists": request.app.state.music_playlists,
+        "ambience_folders": request.app.state.ambience_folders,
+        "scenes": request.app.state.scenes,
+    }

@@ -13,8 +13,14 @@ class Settings:
         self.base_dir = Path(__file__).resolve().parents[2]
         self.app_name = "Immersion"
         self.app_version = "0.1.0"
+
         self.static_dir = self.base_dir / "static"
         self.templates_dir = self.base_dir / "templates"
+
+        self.music_dir = self.static_dir / "music"
+        self.ambience_dir = self.static_dir / "ambience"
+        self.art_dir = self.static_dir / "art"
+        self.scenes_file = self.static_dir / "scenes" / "scenes.json"
 
 
 settings = Settings()
