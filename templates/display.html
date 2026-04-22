@@ -3,10 +3,14 @@
 {% block title %}Immersion Display{% endblock %}
 
 {% block content %}
-<main class="page">
-  <h1>Display Page</h1>
+<main class="display-page">
+  <div id="scene-stage" class="scene-stage">
+    <img id="scene-background" class="scene-background" alt="Current scene background">
+    <div id="scene-layers" class="scene-layers"></div>
+    <div id="scene-fade-overlay" class="scene-fade-overlay"></div>
+  </div>
 
-  <section>
+  <section class="display-debug">
     <h2>Live State</h2>
     <p><strong>Scene:</strong> <span id="display-scene">Waiting...</span></p>
     <p><strong>Music:</strong> <span id="display-music">Waiting...</span></p>
