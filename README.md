@@ -160,3 +160,17 @@ This keeps the codebase maintainable and makes it easier to verify that each lay
 
 This project is intended for local use on a single machine, with the GM controlling the display page in real time.  
 The current architecture is intentionally simple so it can grow cleanly as more immersive features are added.
+
+## Audio sync and reconciliation
+
+The audio engine is designed to follow the shared application state, but Web Audio playback can occasionally drift from the latest UI/state changes if updates overlap, arrive out of order, or interrupt fades mid-transition.
+
+To keep playback reliable, the next step is to make audio behave like a **reconciler**:
+- treat the backend state as the source of truth
+- re-apply the full desired audio state on each update
+- stop any music or ambience that is no longer enabled
+- correct volumes and active tracks when they differ from state
+- ignore stale in-flight transitions when newer state has already arrived
+- periodically resync audio so it eventually converges even if a change was missed
+
+This should help prevent cases like ambience continuing to play after it has been disabled, and should make fades and playlist switches more resilient over time.
