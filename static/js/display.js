@@ -149,6 +149,79 @@ async function initDisplayPage() {
   }
 
   /**
+   * Wait for an image element to finish loading.
+   *
+   * Args:
+   *   image: The image element.
+   *
+   * Returns:
+   *   A promise that resolves when the image is loaded.
+   */
+  function waitForImageLoad(image) {
+    return new Promise((resolve, reject) => {
+      image.onload = () => resolve();
+      image.onerror = () => reject(new Error(`Failed to load image: ${image.src}`));
+    });
+  }
+
+  /**
+   * Wait for a video element to be ready to play.
+   *
+   * Args:
+   *   video: The video element.
+   *
+   * Returns:
+   *   A promise that resolves when the video is ready.
+   */
+  function waitForVideoReady(video) {
+    return new Promise((resolve, reject) => {
+      video.oncanplaythrough = () => resolve();
+      video.onerror = () => reject(new Error(`Failed to load video: ${video.src}`));
+    });
+  }
+
+  /**
+   * Preload the assets for a scene without showing them yet.
+   *
+   * Args:
+   *   scene: The scene definition from the library, or null.
+   *
+   * Returns:
+   *   A promise that resolves once all assets are ready.
+   */
+  async function preloadScene(scene) {
+    if (!scene) {
+      return;
+    }
+
+    const preloadTasks = [];
+
+    if (scene.background) {
+      const image = new Image();
+      image.src = scene.background;
+      preloadTasks.push(waitForImageLoad(image));
+    }
+
+    scene.layers.forEach((layer) => {
+      const isVideo = layer.type === "video" || layer.src.endsWith(".webm") || layer.src.endsWith(".mp4");
+
+      if (isVideo) {
+        const video = document.createElement("video");
+        video.preload = "auto";
+        video.src = layer.src;
+        preloadTasks.push(waitForVideoReady(video));
+        return;
+      }
+
+      const image = new Image();
+      image.src = layer.src;
+      preloadTasks.push(waitForImageLoad(image));
+    });
+
+    await Promise.all(preloadTasks);
+  }
+
+  /**
    * Render a scene definition into the stage.
    *
    * Args:
@@ -216,6 +289,7 @@ async function initDisplayPage() {
     await fadeToBlack();
 
     const scene = sceneId ? sceneMap.get(sceneId) ?? null : null;
+    await preloadScene(scene);
     renderScene(scene);
 
     await fadeInFromBlack();
