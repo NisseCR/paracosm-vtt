@@ -2,13 +2,6 @@ from pathlib import Path
 
 
 class Settings:
-    """
-    Application configuration values.
-
-    This keeps project-wide paths and metadata in one place so the rest of the
-    application can stay clean and easy to change.
-    """
-
     def __init__(self) -> None:
         self.base_dir = Path(__file__).resolve().parents[2]
         self.app_name = "Immersion"
@@ -17,10 +10,13 @@ class Settings:
         self.static_dir = self.base_dir / "static"
         self.templates_dir = self.base_dir / "templates"
 
-        self.music_dir = self.static_dir / "music"
-        self.ambience_dir = self.static_dir / "ambience"
-        self.art_dir = self.static_dir / "art"
-        self.scenes_file = self.static_dir / "scenes" / "scenes.json"
+        self.assets_dir = self.static_dir / "assets"
+        self.audio_dir = self.assets_dir / "audio"
+        self.images_dir = self.assets_dir / "images"
+        self.scenes_dir = self.assets_dir / "scenes"
+        self.video_dir = self.assets_dir / "video"
+
+        self.scenes_file = self.scenes_dir / "scenes.json"
 
 
 settings = Settings()

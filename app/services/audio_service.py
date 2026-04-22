@@ -10,9 +10,10 @@ class AudioService:
     Music is expected to be stored as MP3 files and ambience as OGG files.
     """
 
-    def __init__(self, music_dir: Path, ambience_dir: Path) -> None:
-        self.music_dir = music_dir
-        self.ambience_dir = ambience_dir
+    def __init__(self, audio_dir: Path) -> None:
+        self.audio_dir = audio_dir
+        self.music_dir = audio_dir / "music"
+        self.ambience_dir = audio_dir / "ambience"
 
     def scan_music_playlists(self) -> list[MusicPlaylist]:
         """
@@ -31,16 +32,16 @@ class AudioService:
                 MusicTrack(
                     name=track.stem,
                     file_name=track.name,
-                    file_path=str(track.relative_to(self.music_dir.parent)),
-                    url=f"/static/{track.relative_to(self.music_dir.parent).as_posix()}",
+                    file_path=str(track.relative_to(self.audio_dir.parent)),
+                    url=f"/static/{track.relative_to(self.audio_dir.parent).as_posix()}",
                 )
                 for track in sorted(playlist_dir.iterdir())
-                if track.is_file() and track.suffix.lower() == ".mp3"
+                if track.is_file() and track.suffix.lower() in {".mp3", ".wav", ".ogg"}
             ]
 
             cover_file = playlist_dir / "cover.jpg"
             cover_url = (
-                f"/static/{cover_file.relative_to(self.music_dir.parent).as_posix()}"
+                f"/static/{cover_file.relative_to(self.audio_dir.parent).as_posix()}"
                 if cover_file.exists()
                 else None
             )
@@ -73,11 +74,11 @@ class AudioService:
                 AmbienceTrack(
                     name=track.stem,
                     file_name=track.name,
-                    file_path=str(track.relative_to(self.ambience_dir.parent)),
-                    url=f"/static/{track.relative_to(self.ambience_dir.parent).as_posix()}",
+                    file_path=str(track.relative_to(self.audio_dir.parent)),
+                    url=f"/static/{track.relative_to(self.audio_dir.parent).as_posix()}",
                 )
                 for track in sorted(ambience_dir.iterdir())
-                if track.is_file() and track.suffix.lower() == ".ogg"
+                if track.is_file() and track.suffix.lower() in {".ogg", ".wav", ".mp3"}
             ]
 
             folders.append(

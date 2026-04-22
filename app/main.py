@@ -17,8 +17,12 @@ async def lifespan(app: FastAPI):
 
     This runs once when the app starts and once when it shuts down.
     """
-    audio_service: AudioService = AudioService(settings.music_dir, settings.ambience_dir)
-    scene_service: SceneService = SceneService(settings.art_dir, settings.scenes_file)
+    audio_service: AudioService = AudioService(settings.audio_dir)
+    scene_service: SceneService = SceneService(
+        settings.images_dir,
+        settings.video_dir,
+        settings.scenes_file,
+    )
 
     app.state.app_state = AppState()
     app.state.audio_service = audio_service

@@ -12,8 +12,12 @@ class SceneService:
     static art directory.
     """
 
-    def __init__(self, art_dir: Path, scenes_file: Path) -> None:
-        self.art_dir = art_dir
+    IMAGE_EXTENSIONS = {".png", ".jpg", ".jpeg", ".webp", ".gif"}
+    VIDEO_EXTENSIONS = {".webm", ".mp4", ".mkv", ".mov", ".avi"}
+
+    def __init__(self, images_dir: Path, video_dir: Path, scenes_file: Path) -> None:
+        self.images_dir = images_dir
+        self.video_dir = video_dir
         self.scenes_file = scenes_file
 
     def load_scenes(self) -> list[SceneDefinition]:
@@ -46,14 +50,26 @@ class SceneService:
 
         return scenes
 
-    def _to_static_url(self, relative_path: str) -> str:
+    def _to_static_url(self, asset_name: str) -> str:
         """
-        Convert an art-relative path into a static URL.
+        Convert an asset name into a static URL.
 
         Args:
-            relative_path: A path relative to the art directory.
+            asset_name: A file name or relative asset path.
 
         Returns:
             A browser-accessible static URL.
         """
-        return f"/static/art/{relative_path}".replace("\\", "/")
+        normalized_name = asset_name.replace("\\", "/")
+
+        if "/" in normalized_name:
+            return f"/static/assets/{normalized_name}"
+
+        suffix = Path(normalized_name).suffix.lower()
+
+        if suffix in self.IMAGE_EXTENSIONS:
+            return f"/static/assets/images/{normalized_name}"
+        if suffix in self.VIDEO_EXTENSIONS:
+            return f"/static/assets/video/{normalized_name}"
+
+        return f"/static/assets/images/{normalized_name}"
