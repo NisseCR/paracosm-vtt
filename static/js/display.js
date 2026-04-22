@@ -70,6 +70,17 @@ async function initDisplayPage() {
   }
 
   /**
+   * Get the current fade duration for scene transitions in milliseconds.
+   *
+   * Returns:
+   *   The fade duration in milliseconds.
+   */
+  function getSceneFadeDurationMs() {
+    const fadeSeconds = Number(currentState.fade_settings?.scene ?? 5.0);
+    return Math.max(0, fadeSeconds * 1000);
+  }
+
+  /**
    * Fade the entire scene stage to black.
    *
    * Returns:
@@ -82,8 +93,10 @@ async function initDisplayPage() {
         return;
       }
 
+      const durationMs = getSceneFadeDurationMs();
+      sceneFadeOverlay.style.transitionDuration = `${durationMs}ms`;
       sceneFadeOverlay.classList.add("is-visible");
-      window.setTimeout(resolve, 650);
+      window.setTimeout(resolve, durationMs);
     });
   }
 
@@ -100,8 +113,10 @@ async function initDisplayPage() {
         return;
       }
 
+      const durationMs = getSceneFadeDurationMs();
+      sceneFadeOverlay.style.transitionDuration = `${durationMs}ms`;
       sceneFadeOverlay.classList.remove("is-visible");
-      window.setTimeout(resolve, 650);
+      window.setTimeout(resolve, durationMs);
     });
   }
 
@@ -147,6 +162,7 @@ async function initDisplayPage() {
           video.muted = true;
           video.loop = true;
           video.playsInline = true;
+          video.setAttribute("aria-hidden", "true");
           sceneLayers.appendChild(video);
           return;
         }
