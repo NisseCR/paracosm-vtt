@@ -4,6 +4,36 @@
  * This file will later manage SSE updates, scene rendering, and audio playback.
  */
 function initDisplayPage() {
+  const eventSource = new EventSource("/events");
+
+  eventSource.addEventListener("state_snapshot", (event) => {
+    console.log("Initial state snapshot received:", event.data);
+  });
+
+  eventSource.addEventListener("scene_changed", (event) => {
+    const data = JSON.parse(event.data);
+    console.log("Scene changed:", data);
+  });
+
+  eventSource.addEventListener("music_changed", (event) => {
+    const data = JSON.parse(event.data);
+    console.log("Music changed:", data);
+  });
+
+  eventSource.addEventListener("ambience_changed", (event) => {
+    const data = JSON.parse(event.data);
+    console.log("Ambience changed:", data);
+  });
+
+  eventSource.addEventListener("fade_settings_changed", (event) => {
+    const data = JSON.parse(event.data);
+    console.log("Fade settings changed:", data);
+  });
+
+  eventSource.onerror = () => {
+    console.warn("Display SSE connection lost. Browser will retry automatically.");
+  };
+
   console.log("Display page loaded");
 }
 

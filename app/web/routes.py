@@ -1,9 +1,16 @@
 from fastapi import APIRouter, Request
-from fastapi.responses import HTMLResponse
+from fastapi.responses import HTMLResponse, StreamingResponse
 from fastapi.templating import Jinja2Templates
 
 from app.core.config import settings
+from app.models.state import AppState
 from app.schemas.api import LibraryResponse, RootResponse, StateResponse
+from app.schemas.events import (
+    AmbienceUpdateRequest,
+    FadeUpdateRequest,
+    MusicUpdateRequest,
+    SceneUpdateRequest,
+)
 
 router = APIRouter()
 templates = Jinja2Templates(directory=str(settings.templates_dir))
@@ -60,6 +67,24 @@ async def display_page(request: Request) -> HTMLResponse:
     )
 
 
+@router.get("/events")
+async def event_stream(request: Request):
+    """
+    Stream live application events to connected clients.
+
+    Returns:
+        An SSE response stream.
+    """
+    event_service = request.app.state.event_service
+
+    async def generator():
+        yield "event: state_snapshot\ndata: {}\n\n"
+        async for message in event_service.connect():
+            yield message
+
+    return StreamingResponse(generator(), media_type="text/event-stream")
+
+
 @router.get("/api/state", response_model=StateResponse)
 async def get_state(request: Request) -> StateResponse:
     """
@@ -90,3 +115,55 @@ async def get_library(request: Request) -> LibraryResponse:
         ambience_folders=request.app.state.ambience_folders,
         scenes=request.app.state.scenes,
     )
+
+
+@router.post("/api/state/scene", response_model=StateResponse)
+async def set_scene(request: Request, body: SceneUpdateRequest) -> StateResponse:
+    """
+    Update the current scene and broadcast the change.
+    """
+    request.app.state.app_state.current_scene_id = body.scene_id
+    await request.app.state.event_service.broadcast(
+        "scene_changed",
+        {"scene_id": body.scene_id},
+    )
+    return request.app.state.app_state
+
+
+@router.post("/api/state/music", response_model=StateResponse)
+async def set_music(request: Request, body: MusicUpdateRequest) -> StateResponse:
+    """
+    Update the current music playlist and broadcast the change.
+    """
+    request.app.state.app_state.current_music_playlist = body.music_playlist
+    await request.app.state.event_service.broadcast(
+        "music_changed",
+        {"music_playlist": body.music_playlist},
+    )
+    return request.app.state.app_state
+
+
+@router.post("/api/state/ambience", response_model=StateResponse)
+async def set_ambience(request: Request, body: AmbienceUpdateRequest) -> StateResponse:
+    """
+    Update the active ambience map and broadcast the change.
+    """
+    request.app.state.app_state.active_ambiences = body.active_ambiences
+    await request.app.state.event_service.broadcast(
+        "ambience_changed",
+        {"active_ambiences": body.active_ambiences},
+    )
+    return request.app.state.app_state
+
+
+@router.post("/api/state/fade", response_model=StateResponse)
+async def set_fade_settings(request: Request, body: FadeUpdateRequest) -> StateResponse:
+    """
+    Update fade settings and broadcast the change.
+    """
+    request.app.state.app_state.fade_settings = body.fade_settings
+    await request.app.state.event_service.broadcast(
+        "fade_settings_changed",
+        {"fade_settings": body.fade_settings},
+    )
+    return request.app.state.app_state

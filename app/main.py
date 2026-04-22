@@ -6,6 +6,7 @@ from fastapi.staticfiles import StaticFiles
 from app.core.config import settings
 from app.models.state import AppState
 from app.services.audio_service import AudioService
+from app.services.event_service import EventService
 from app.services.scene_service import SceneService
 from app.web.routes import router as web_router
 
@@ -25,6 +26,7 @@ async def lifespan(app: FastAPI):
     )
 
     app.state.app_state = AppState()
+    app.state.event_service = EventService()
     app.state.audio_service = audio_service
     app.state.scene_service = scene_service
     app.state.music_playlists = [
