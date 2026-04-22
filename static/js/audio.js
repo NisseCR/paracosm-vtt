@@ -54,50 +54,46 @@ class AudioEngine {
   }
 
   /**
-   * Update the current scene audio state.
+   * Apply the complete scene audio state.
    *
    * Args:
-   *   scene: The current scene object or null.
-   *   fadeSettings: The current fade settings object.
+   *   state: The current application state.
+   *   resolvedAudio: The resolved audio lookup data.
    */
-  async setScene(scene, fadeSettings) {
+  async syncFromState(state, resolvedAudio) {
     await this.ensureRunning();
 
-    if (!scene) {
-      this.clearMusic();
-      this.clearAmbiences();
-      return;
+    const fadeSettings = state.fade_settings ?? {};
+    const musicFadeSeconds = Number(fadeSettings.music ?? this.defaultMusicFadeSeconds);
+    const ambienceFadeSeconds = Number(fadeSettings.ambience ?? this.defaultAmbienceFadeSeconds);
+
+    const currentMusicPlaylist = state.current_music_playlist;
+    const activeAmbiences = state.active_ambiences ?? {};
+
+    if (currentMusicPlaylist && resolvedAudio.musicTrackUrl) {
+      await this.setMusic(resolvedAudio.musicTrackUrl, currentMusicPlaylist.volume ?? 1.0, musicFadeSeconds);
+    } else {
+      await this.clearMusic(musicFadeSeconds);
     }
 
-    const musicFadeSeconds = Number(fadeSettings?.music ?? this.defaultMusicFadeSeconds);
-    const ambienceFadeSeconds = Number(fadeSettings?.ambience ?? this.defaultAmbienceFadeSeconds);
-
-    if (scene.music) {
-      await this.setMusic(scene.music, musicFadeSeconds);
-    }
-
-    if (scene.ambiences) {
-      await this.setAmbiences(scene.ambiences, ambienceFadeSeconds);
-    }
+    await this.syncAmbiences(activeAmbiences, resolvedAudio.ambienceTrackUrls, ambienceFadeSeconds);
   }
 
   /**
    * Update the current music track.
    *
    * Args:
-   *   musicPlaylist: The current music playlist object or null.
+   *   trackUrl: The audio URL for the current music track.
+   *   volume: The target volume.
    *   fadeSeconds: The fade duration in seconds.
    */
-  async setMusic(musicPlaylist, fadeSeconds = this.defaultMusicFadeSeconds) {
+  async setMusic(trackUrl, volume, fadeSeconds = this.defaultMusicFadeSeconds) {
     await this.ensureRunning();
 
-    if (!musicPlaylist || !musicPlaylist.tracks || musicPlaylist.tracks.length === 0) {
+    if (!trackUrl) {
       await this.clearMusic(fadeSeconds);
       return;
     }
-
-    const nextTrack = musicPlaylist.tracks[0];
-    const trackUrl = nextTrack.url;
 
     if (!this.musicController) {
       this.musicController = new FadableTrackController(this.audioContext, this.masterGain, {
@@ -107,24 +103,30 @@ class AudioEngine {
     }
 
     await this.musicController.setSource(trackUrl);
-    await this.musicController.fadeTo(musicPlaylist.volume ?? 1.0, fadeSeconds);
+    await this.musicController.fadeTo(volume ?? 1.0, fadeSeconds);
   }
 
   /**
-   * Update the current ambience tracks.
+   * Synchronize ambience controllers with the current active ambience map.
    *
    * Args:
-   *   activeAmbiences: A map of ambience ids to active ambience objects.
+   *   activeAmbiences: The active ambience state map.
+   *   resolvedTrackUrls: A map of ambience ids to track URLs.
    *   fadeSeconds: The fade duration in seconds.
    */
-  async setAmbiences(activeAmbiences, fadeSeconds = this.defaultAmbienceFadeSeconds) {
+  async syncAmbiences(activeAmbiences, resolvedTrackUrls, fadeSeconds = this.defaultAmbienceFadeSeconds) {
     await this.ensureRunning();
 
     const desiredIds = new Set(Object.keys(activeAmbiences ?? {}));
 
     for (const [ambienceId, ambience] of Object.entries(activeAmbiences ?? {})) {
+      const trackUrl = resolvedTrackUrls?.[ambienceId];
+      if (!trackUrl) {
+        continue;
+      }
+
       const controller = this.getOrCreateAmbienceController(ambienceId);
-      await controller.setSource(this.resolveAmbienceUrl(ambienceId));
+      await controller.setSource(trackUrl);
       await controller.fadeTo(ambience.volume ?? 1.0, fadeSeconds);
     }
 
@@ -219,19 +221,6 @@ class AudioEngine {
     }
 
     return controller;
-  }
-
-  /**
-   * Resolve an ambience id to an audio URL.
-   *
-   * Args:
-   *   ambienceId: The ambience identifier.
-   *
-   * Returns:
-   *   The audio URL used for playback.
-   */
-  resolveAmbienceUrl(ambienceId) {
-    return `/static/assets/audio/ambience/${ambienceId}.ogg`;
   }
 }
 

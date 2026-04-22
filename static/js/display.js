@@ -25,6 +25,22 @@ async function initDisplayPage() {
     library.scenes.map((scene) => [scene.id, scene])
   );
 
+  const musicTrackMap = new Map();
+  const ambienceTrackMap = new Map();
+
+  library.music_playlists.forEach((playlist) => {
+    const firstTrack = playlist.tracks?.[0] ?? null;
+    if (firstTrack) {
+      musicTrackMap.set(playlist.id, firstTrack.url);
+    }
+  });
+
+  library.ambience_folders.forEach((folder) => {
+    folder.tracks.forEach((track) => {
+      ambienceTrackMap.set(track.name, track.url);
+    });
+  });
+
   const audioEngine = new window.AudioEngine();
   await audioEngine.init();
 
@@ -301,34 +317,41 @@ async function initDisplayPage() {
   }
 
   /**
+   * Resolve the current audio state from the display state.
+   *
+   * Args:
+   *   state: The latest known application state.
+   *
+   * Returns:
+   *   A resolved audio lookup object.
+   */
+  function resolveAudioState(state) {
+    const musicPlaylistId = state.current_music_playlist?.playlist_id ?? null;
+    const musicTrackUrl = musicPlaylistId ? musicTrackMap.get(musicPlaylistId) ?? null : null;
+
+    const ambienceTrackUrls = {};
+    Object.keys(state.active_ambiences ?? {}).forEach((ambienceId) => {
+      const trackUrl = ambienceTrackMap.get(ambienceId);
+      if (trackUrl) {
+        ambienceTrackUrls[ambienceId] = trackUrl;
+      }
+    });
+
+    return {
+      musicTrackUrl,
+      ambienceTrackUrls,
+    };
+  }
+
+  /**
    * Apply audio state from the current shared application state.
    *
    * Args:
    *   state: The latest known application state.
    */
   async function updateAudioFromState(state) {
-    const scene = state.current_scene ? sceneMap.get(state.current_scene.scene_id) ?? null : null;
-    const fadeSettings = state.fade_settings ?? {};
-
-    if (!scene) {
-      await audioEngine.clearMusic(Number(fadeSettings.music ?? 5.0));
-      await audioEngine.clearAmbiences(Number(fadeSettings.ambience ?? 10.0));
-      return;
-    }
-
-    const currentMusicPlaylist = state.current_music_playlist;
-    const activeAmbiences = state.active_ambiences ?? {};
-
-    await audioEngine.setMusic(currentMusicPlaylist, Number(fadeSettings.music ?? 5.0));
-    await audioEngine.setAmbiences(activeAmbiences, Number(fadeSettings.ambience ?? 10.0));
-
-    if (currentMusicPlaylist) {
-      await audioEngine.setMusicVolume(currentMusicPlaylist.volume ?? 1.0);
-    }
-
-    for (const [ambienceId, ambience] of Object.entries(activeAmbiences)) {
-      await audioEngine.setAmbienceVolume(ambienceId, ambience.volume ?? 1.0);
-    }
+    const resolvedAudio = resolveAudioState(state);
+    await audioEngine.syncFromState(state, resolvedAudio);
   }
 
   eventSource.addEventListener("state_snapshot", async (event) => {
