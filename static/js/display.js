@@ -7,7 +7,8 @@ function initDisplayPage() {
   const eventSource = new EventSource("/events");
 
   eventSource.addEventListener("state_snapshot", (event) => {
-    console.log("Initial state snapshot received:", event.data);
+    const data = JSON.parse(event.data);
+    console.log("Initial state snapshot received:", data);
   });
 
   eventSource.addEventListener("scene_changed", (event) => {

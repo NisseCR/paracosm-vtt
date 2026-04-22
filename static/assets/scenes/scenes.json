@@ -4,5 +4,11 @@
     "name": "Gate",
     "background": "gate.jpg",
     "layers": ["wind.webm", "mountain.webm"]
+  },
+  {
+    "id": "ship",
+    "name": "Ship",
+    "background": "deck.jpg",
+    "layers": ["wind.webm"]
   }
 ]

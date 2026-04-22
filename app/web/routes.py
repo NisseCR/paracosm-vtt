@@ -3,7 +3,6 @@ from fastapi.responses import HTMLResponse, StreamingResponse
 from fastapi.templating import Jinja2Templates
 
 from app.core.config import settings
-from app.models.state import AppState
 from app.schemas.api import LibraryResponse, RootResponse, StateResponse
 from app.schemas.events import (
     AmbienceUpdateRequest,
@@ -78,7 +77,7 @@ async def event_stream(request: Request):
     event_service = request.app.state.event_service
 
     async def generator():
-        yield "event: state_snapshot\ndata: {}\n\n"
+        yield f"event: state_snapshot\ndata: {request.app.state.app_state.model_dump_json()}\n\n"
         async for message in event_service.connect():
             yield message
 
