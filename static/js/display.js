@@ -492,7 +492,7 @@ async function initDisplayPage() {
       await switchScene(currentState.current_scene?.scene_id ?? null);
     }
 
-    updateAudioFromState(currentState);
+    void updateAudioFromState(currentState);
   });
 
   eventSource.onerror = () => {

@@ -32,6 +32,19 @@ class EventService:
         finally:
             self._queues.discard(queue)
 
+    def format_event(self, event_type: str, payload: dict) -> str:
+        """
+        Format an SSE message.
+
+        Args:
+            event_type: The event name.
+            payload: The event payload.
+
+        Returns:
+            A properly formatted SSE message string.
+        """
+        return f"event: {event_type}\ndata: {json.dumps(payload)}\n\n"
+
     async def broadcast(self, event_type: str, payload: dict) -> None:
         """
         Send an event to all currently connected clients.
@@ -40,6 +53,7 @@ class EventService:
             event_type: The event name.
             payload: The event payload.
         """
-        message = f"event: {event_type}\ndata: {json.dumps(payload)}\n\n"
+        message = self.format_event(event_type, payload)
+
         for queue in list(self._queues):
             await queue.put(message)

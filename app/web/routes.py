@@ -3,7 +3,6 @@ from fastapi.responses import HTMLResponse, StreamingResponse
 from fastapi.templating import Jinja2Templates
 
 from app.core.config import settings
-from app.models.state import AppState
 from app.schemas.api import LibraryResponse, RootResponse, StateResponse
 from app.schemas.events import (
     ActiveAmbience,
@@ -18,6 +17,42 @@ from app.schemas.events import (
 
 router = APIRouter()
 templates = Jinja2Templates(directory=str(settings.templates_dir))
+
+
+def build_state_snapshot(app_state) -> dict:
+    """
+    Build a full serializable snapshot of the current application state.
+
+    Args:
+        app_state: The shared application state.
+
+    Returns:
+        A JSON-serializable dictionary representation of the state.
+    """
+    return app_state.model_dump()
+
+
+def bump_revision(app_state) -> None:
+    """
+    Increment the shared application state revision.
+
+    Args:
+        app_state: The shared application state.
+    """
+    app_state.revision += 1
+
+
+async def broadcast_state(request: Request) -> None:
+    """
+    Broadcast the current full application state to connected clients.
+
+    Args:
+        request: The active HTTP request.
+    """
+    await request.app.state.event_service.broadcast(
+        "state_updated",
+        build_state_snapshot(request.app.state.app_state),
+    )
 
 
 @router.get("/", response_model=RootResponse)
@@ -76,6 +111,8 @@ async def event_stream(request: Request):
     """
     Stream live application events to connected clients.
 
+    The first message is a full state snapshot, followed by normal updates.
+
     Returns:
         An SSE response stream.
     """
@@ -131,12 +168,8 @@ async def set_scene(request: Request, body: SceneUpdateRequest) -> StateResponse
         if body.scene_id is not None
         else None
     )
-    request.app.state.app_state.revision += 1
-
-    await request.app.state.event_service.broadcast(
-        "state_updated",
-        request.app.state.app_state.model_dump(),
-    )
+    bump_revision(request.app.state.app_state)
+    await broadcast_state(request)
     return request.app.state.app_state
 
 
@@ -150,12 +183,8 @@ async def set_music(request: Request, body: MusicUpdateRequest) -> StateResponse
         if body.music_playlist is not None
         else None
     )
-    request.app.state.app_state.revision += 1
-
-    await request.app.state.event_service.broadcast(
-        "state_updated",
-        request.app.state.app_state.model_dump(),
-    )
+    bump_revision(request.app.state.app_state)
+    await broadcast_state(request)
     return request.app.state.app_state
 
 
@@ -165,12 +194,8 @@ async def set_ambience(request: Request, body: AmbienceUpdateRequest) -> StateRe
     Update the active ambience map and broadcast the change.
     """
     request.app.state.app_state.active_ambiences = body.active_ambiences
-    request.app.state.app_state.revision += 1
-
-    await request.app.state.event_service.broadcast(
-        "state_updated",
-        request.app.state.app_state.model_dump(),
-    )
+    bump_revision(request.app.state.app_state)
+    await broadcast_state(request)
     return request.app.state.app_state
 
 
@@ -180,12 +205,8 @@ async def set_fade_settings(request: Request, body: FadeUpdateRequest) -> StateR
     Update fade settings and broadcast the change.
     """
     request.app.state.app_state.fade_settings = body.fade_settings
-    request.app.state.app_state.revision += 1
-
-    await request.app.state.event_service.broadcast(
-        "state_updated",
-        request.app.state.app_state.model_dump(),
-    )
+    bump_revision(request.app.state.app_state)
+    await broadcast_state(request)
     return request.app.state.app_state
 
 
@@ -201,10 +222,6 @@ async def set_volumes(request: Request, body: VolumeUpdateRequest) -> StateRespo
         if ambience_id in request.app.state.app_state.active_ambiences:
             request.app.state.app_state.active_ambiences[ambience_id].volume = volume
 
-    request.app.state.app_state.revision += 1
-
-    await request.app.state.event_service.broadcast(
-        "state_updated",
-        request.app.state.app_state.model_dump(),
-    )
+    bump_revision(request.app.state.app_state)
+    await broadcast_state(request)
     return request.app.state.app_state

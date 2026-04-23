@@ -11,31 +11,45 @@ from app.services.scene_service import SceneService
 from app.web.routes import router as web_router
 
 
+def build_application_state(audio_service: AudioService, scene_service: SceneService) -> dict:
+    """
+    Build the initial application state payload stored on the FastAPI app.
+
+    Args:
+        audio_service: The audio library discovery service.
+        scene_service: The scene library discovery service.
+
+    Returns:
+        A dictionary of app state resources and discovered media data.
+    """
+    return {
+        "app_state": AppState(),
+        "event_service": EventService(),
+        "audio_service": audio_service,
+        "scene_service": scene_service,
+        "music_playlists": [playlist.model_dump() for playlist in audio_service.scan_music_playlists()],
+        "ambience_folders": [folder.model_dump() for folder in audio_service.scan_ambience_folders()],
+        "scenes": [scene.model_dump() for scene in scene_service.load_scenes()],
+    }
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """
     Initialize and tear down application resources.
 
-    This runs once when the app starts and once when it shuts down.
+    This runs once when the app starts and once when the app shuts down.
     """
-    audio_service: AudioService = AudioService(settings.audio_dir)
-    scene_service: SceneService = SceneService(
+    audio_service = AudioService(settings.audio_dir)
+    scene_service = SceneService(
         settings.images_dir,
         settings.video_dir,
         settings.scenes_file,
     )
 
-    app.state.app_state = AppState()
-    app.state.event_service = EventService()
-    app.state.audio_service = audio_service
-    app.state.scene_service = scene_service
-    app.state.music_playlists = [
-        playlist.model_dump() for playlist in audio_service.scan_music_playlists()
-    ]
-    app.state.ambience_folders = [
-        folder.model_dump() for folder in audio_service.scan_ambience_folders()
-    ]
-    app.state.scenes = [scene.model_dump() for scene in scene_service.load_scenes()]
+    initial_state = build_application_state(audio_service, scene_service)
+    for key, value in initial_state.items():
+        setattr(app.state, key, value)
 
     yield
 
