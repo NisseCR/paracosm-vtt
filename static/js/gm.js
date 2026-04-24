@@ -10,20 +10,14 @@ async function initGmPage() {
     fetch("/api/library"),
   ]);
 
-  const currentState = await stateResponse.json();
+  const canonicalState = await stateResponse.json();
   const library = await libraryResponse.json();
 
   const ui = createUiBindings();
-  const draftState = createDraftState(currentState);
+  const draftState = createDraftState(canonicalState);
 
   renderAll(ui, library, draftState);
-
-  bindSceneSelection(ui.sceneList, draftState, library, renderAll.bind(null, ui, library, draftState));
-  bindMusicSelection(ui.musicList, draftState, library, renderAll.bind(null, ui, library, draftState));
-  bindAmbienceControls(ui.ambienceList, draftState, library, renderAll.bind(null, ui, library, draftState));
-  bindFadeControls(ui, draftState);
-  bindSyncButton(ui.syncButton, draftState);
-
+  bindUiEvents(ui, library, draftState);
   renderAll(ui, library, draftState);
 }
 
@@ -60,13 +54,29 @@ function createDraftState(state) {
   return {
     scene: state.scene ?? null,
     music: state.music ?? null,
-    ambiences: state.ambiences ?? {},
-    fade_settings: state.fade_settings ?? {
-      music: 5.0,
-      ambience: 10.0,
-      scene: 5.0,
+    ambiences: structuredClone(state.ambiences ?? {}),
+    fade_settings: {
+      music: state.fade_settings?.music ?? 5.0,
+      ambience: state.fade_settings?.ambience ?? 10.0,
+      scene: state.fade_settings?.scene ?? 5.0,
     },
   };
+}
+
+/**
+ * Bind all UI handlers for the GM page.
+ *
+ * Args:
+ *   ui: DOM element bindings.
+ *   library: The discovered media library.
+ *   draftState: The editable local state.
+ */
+function bindUiEvents(ui, library, draftState) {
+  bindSceneSelection(ui.sceneList, ui, library, draftState);
+  bindMusicSelection(ui.musicList, ui, library, draftState);
+  bindAmbienceSelection(ui.ambienceList, ui, library, draftState);
+  bindFadeControls(ui, draftState);
+  bindSyncButton(ui.syncButton, draftState);
 }
 
 /**
@@ -123,16 +133,6 @@ function renderSceneList(container, library, draftState) {
     button.textContent = scene.name;
     button.classList.toggle("active", draftState.scene?.scene_id === scene.id);
 
-    button.addEventListener("click", () => {
-      draftState.scene = {
-        scene_id: scene.id,
-        transition: draftState.scene?.transition ?? null,
-        opacity: draftState.scene?.opacity ?? 1.0,
-      };
-      renderSceneList(container, library, draftState);
-      renderCurrentState(createUiBindings(), draftState);
-    });
-
     container.appendChild(button);
   });
 }
@@ -158,20 +158,12 @@ function renderMusicList(container, library, draftState) {
     button.textContent = playlist.name;
     button.classList.toggle("active", draftState.music?.playlist_id === playlist.id);
 
-    button.addEventListener("click", () => {
-      draftState.music = {
-        playlist_id: playlist.id,
-      };
-      renderMusicList(container, library, draftState);
-      renderCurrentState(createUiBindings(), draftState);
-    });
-
     container.appendChild(button);
   });
 }
 
 /**
- * Render ambience toggles and per-item controls.
+ * Render ambience toggles.
  *
  * Args:
  *   container: The ambience list container.
@@ -188,8 +180,131 @@ function renderAmbienceList(container, library, draftState) {
   library.ambience_folders.forEach((folder) => {
     folder.tracks.forEach((track) => {
       const ambienceId = track.name;
-      const activeAmbience = draftState.ambiences[ambienceId] ?? null;
-      const isActive = Boolean(activeAmbience);
+      const isActive = Boolean(draftState.ambiences[ambienceId]);
+
+      const wrapper = document.createElement("div");
+      wrapper.className = "ambience-control";
+
+      const toggleButton = document.createElement("button");
+      toggleButton.type = "button";
+      toggleButton.textContent = isActive ? `Remove ${track.name}` : `Add ${track.name}`;
+      toggleButton.classList.toggle("active", isActive);
+
+      wrapper.appendChild(toggleButton);
+      container.appendChild(wrapper);
+    });
+  });
+}
+
+/**
+ * Render fade duration inputs.
+ *
+ * Args:
+ *   ui: DOM element bindings.
+ *   draftState: The editable local state.
+ */
+function renderFadeControls(ui, draftState) {
+  if (ui.fadeMusic) {
+    ui.fadeMusic.value = draftState.fade_settings.music;
+  }
+
+  if (ui.fadeAmbience) {
+    ui.fadeAmbience.value = draftState.fade_settings.ambience;
+  }
+
+  if (ui.fadeScene) {
+    ui.fadeScene.value = draftState.fade_settings.scene;
+  }
+}
+
+/**
+ * Bind scene selection handlers.
+ *
+ * Args:
+ *   container: The scene container.
+ *   ui: DOM element bindings.
+ *   library: The discovered media library.
+ *   draftState: The editable local state.
+ */
+function bindSceneSelection(container, ui, library, draftState) {
+  if (!container) {
+    return;
+  }
+
+  container.innerHTML = "";
+
+  library.scenes.forEach((scene) => {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.textContent = scene.name;
+    button.classList.toggle("active", draftState.scene?.scene_id === scene.id);
+
+    button.addEventListener("click", () => {
+      draftState.scene = {
+        scene_id: scene.id,
+        transition: draftState.scene?.transition ?? null,
+        opacity: draftState.scene?.opacity ?? 1.0,
+      };
+      renderAll(ui, library, draftState);
+    });
+
+    container.appendChild(button);
+  });
+}
+
+/**
+ * Bind music selection handlers.
+ *
+ * Args:
+ *   container: The music container.
+ *   ui: DOM element bindings.
+ *   library: The discovered media library.
+ *   draftState: The editable local state.
+ */
+function bindMusicSelection(container, ui, library, draftState) {
+  if (!container) {
+    return;
+  }
+
+  container.innerHTML = "";
+
+  library.music_playlists.forEach((playlist) => {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.textContent = playlist.name;
+    button.classList.toggle("active", draftState.music?.playlist_id === playlist.id);
+
+    button.addEventListener("click", () => {
+      draftState.music = {
+        playlist_id: playlist.id,
+      };
+      renderAll(ui, library, draftState);
+    });
+
+    container.appendChild(button);
+  });
+}
+
+/**
+ * Bind ambience toggle handlers.
+ *
+ * Args:
+ *   container: The ambience container.
+ *   ui: DOM element bindings.
+ *   library: The discovered media library.
+ *   draftState: The editable local state.
+ */
+function bindAmbienceSelection(container, ui, library, draftState) {
+  if (!container) {
+    return;
+  }
+
+  container.innerHTML = "";
+
+  library.ambience_folders.forEach((folder) => {
+    folder.tracks.forEach((track) => {
+      const ambienceId = track.name;
+      const isActive = Boolean(draftState.ambiences[ambienceId]);
 
       const wrapper = document.createElement("div");
       wrapper.className = "ambience-control";
@@ -209,35 +324,13 @@ function renderAmbienceList(container, library, draftState) {
           };
         }
 
-        renderAmbienceList(container, library, draftState);
+        renderAll(ui, library, draftState);
       });
 
       wrapper.appendChild(toggleButton);
-
       container.appendChild(wrapper);
     });
   });
-}
-
-/**
- * Render fade duration inputs.
- *
- * Args:
- *   ui: DOM element bindings.
- *   draftState: The editable local state.
- */
-function renderFadeControls(ui, draftState) {
-  if (ui.fadeMusic) {
-    ui.fadeMusic.value = draftState.fade_settings?.music ?? 5.0;
-  }
-
-  if (ui.fadeAmbience) {
-    ui.fadeAmbience.value = draftState.fade_settings?.ambience ?? 10.0;
-  }
-
-  if (ui.fadeScene) {
-    ui.fadeScene.value = draftState.fade_settings?.scene ?? 5.0;
-  }
 }
 
 /**
@@ -281,73 +374,17 @@ function bindSyncButton(button, draftState) {
 
   button.addEventListener("click", async () => {
     const updatedState = await syncState(draftState);
-    Object.assign(draftState, updatedState);
+    draftState.scene = updatedState.scene ?? null;
+    draftState.music = updatedState.music ?? null;
+    draftState.ambiences = structuredClone(updatedState.ambiences ?? {});
+    draftState.fade_settings = {
+      music: updatedState.fade_settings?.music ?? 5.0,
+      ambience: updatedState.fade_settings?.ambience ?? 10.0,
+      scene: updatedState.fade_settings?.scene ?? 5.0,
+    };
+
+    renderAll(createUiBindings(), { scenes: [], music_playlists: [], ambience_folders: [] }, draftState);
     window.location.reload();
-  });
-}
-
-/**
- * Bind scene selection handlers.
- *
- * Args:
- *   container: The scene container.
- *   draftState: The editable local state.
- *   library: The discovered media library.
- *   rerender: Callback to refresh the UI.
- */
-function bindSceneSelection(container, draftState, library, rerender) {
-  if (!container) {
-    return;
-  }
-
-  container.addEventListener("click", () => {
-    rerender();
-  });
-
-  window.addEventListener("click", () => {
-    rerender();
-  });
-}
-
-/**
- * Bind music selection handlers.
- *
- * Args:
- *   container: The music container.
- *   draftState: The editable local state.
- *   library: The discovered media library.
- *   rerender: Callback to refresh the UI.
- */
-function bindMusicSelection(container, draftState, library, rerender) {
-  if (!container) {
-    return;
-  }
-
-  container.addEventListener("click", () => {
-    rerender();
-  });
-
-  window.addEventListener("click", () => {
-    rerender();
-  });
-}
-
-/**
- * Bind ambience handlers.
- *
- * Args:
- *   container: The ambience container.
- *   draftState: The editable local state.
- *   library: The discovered media library.
- *   rerender: Callback to refresh the UI.
- */
-function bindAmbienceControls(container, draftState, library, rerender) {
-  if (!container) {
-    return;
-  }
-
-  container.addEventListener("click", () => {
-    rerender();
   });
 }
 
