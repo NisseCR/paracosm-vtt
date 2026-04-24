@@ -23,6 +23,11 @@ class AudioEngine {
     this.audioContext = null;
     this.masterGain = null;
 
+    this.fadeSettings = {
+      music: 5.0,
+      ambience: 5.0,
+    };
+
     this.currentDesiredState = {
       music: null,
       ambiences: {},
@@ -61,6 +66,19 @@ class AudioEngine {
   }
 
   /**
+   * Update fade durations used by the audio engine.
+   *
+   * Args:
+   *   fadeSettings: The current fade settings object.
+   */
+  updateFadeSettings(fadeSettings) {
+    this.fadeSettings = {
+      music: Math.max(0, Number(fadeSettings?.music ?? 5.0)),
+      ambience: Math.max(0, Number(fadeSettings?.ambience ?? 5.0)),
+    };
+  }
+
+  /**
    * Update the desired audio state and reconcile playback.
    *
    * Args:
@@ -68,6 +86,7 @@ class AudioEngine {
    */
   async reconcile(state) {
     await this.init();
+    this.updateFadeSettings(state.fade_settings);
 
     const desiredMusicPlaylistId = state.music?.playlist_id ?? null;
     const desiredAmbiences = state.ambiences ?? {};
@@ -257,8 +276,8 @@ class AudioEngine {
    *   targetVolume: The target volume for the new track.
    */
   async crossfadeMusic(previousState, newGainNode, targetVolume) {
-    await this.fadeGainTo(newGainNode, targetVolume, 0.75);
-    await this.fadeOutSource(previousState.source, previousState.gainNode, 0.75);
+    await this.fadeGainTo(newGainNode, targetVolume, this.fadeSettings.music);
+    await this.fadeOutSource(previousState.source, previousState.gainNode, this.fadeSettings.music);
     this.disposeMusicSource(previousState.source, previousState.gainNode);
   }
 
@@ -270,7 +289,7 @@ class AudioEngine {
     const gainNode = this.musicState.gainNode;
 
     if (source && gainNode) {
-      await this.fadeOutSource(source, gainNode, 0.25);
+      await this.fadeOutSource(source, gainNode, this.fadeSettings.music);
       this.disposeMusicSource(source, gainNode);
     }
 
@@ -378,7 +397,7 @@ class AudioEngine {
       }
 
       const targetVolume = Number(ambience.volume ?? 1.0);
-      await this.fadeGainTo(activeEntry.gainNode, targetVolume, 0.75);
+      await this.fadeGainTo(activeEntry.gainNode, targetVolume, this.fadeSettings.ambience);
       activeEntry.ambience = ambience;
     }
   }
@@ -426,7 +445,7 @@ class AudioEngine {
 
     try {
       source.start(0);
-      await this.fadeGainTo(gainNode, targetVolume, 0.75);
+      await this.fadeGainTo(gainNode, targetVolume, this.fadeSettings.ambience);
 
       const currentEntry = this.activeAmbienceSources.get(ambienceId);
       if (!currentEntry || currentEntry.token !== token) {
@@ -458,7 +477,7 @@ class AudioEngine {
       return;
     }
 
-    await this.fadeOutSource(entry.source, entry.gainNode, 0.75);
+    await this.fadeOutSource(entry.source, entry.gainNode, this.fadeSettings.ambience);
     await this.stopAmbience(ambienceId);
   }
 
