@@ -59,6 +59,7 @@ async function initDisplayPage() {
    *   state: The latest state from the backend.
    */
   async function applyState(state) {
+    console.log("Display applying state:", state);
     renderDebugState(state);
     sceneEngine.updateFadeSettings(state.fade_settings);
     await sceneEngine.reconcile(state.scene?.scene_id ?? null);
@@ -66,11 +67,13 @@ async function initDisplayPage() {
 
   eventSource.addEventListener("state_snapshot", async (event) => {
     const data = JSON.parse(event.data);
+    console.log("Display received state_snapshot:", data);
     await applyState(data);
   });
 
   eventSource.addEventListener("state_updated", async (event) => {
     const data = JSON.parse(event.data);
+    console.log("Display received state_updated:", data);
     await applyState(data);
   });
 
