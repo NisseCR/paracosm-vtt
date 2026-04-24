@@ -69,7 +69,10 @@ async function initDisplayPage() {
 
     // Reconcile with last received state if any
     if (lastState) {
-      await audioEngine.reconcile(lastState);
+      await Promise.all([
+        sceneEngine.reconcile(lastState.scene?.scene_id ?? null),
+        audioEngine.reconcile(lastState)
+      ]);
     }
   });
 
@@ -109,10 +112,11 @@ async function initDisplayPage() {
 
     sceneEngine.updateFadeSettings(state.fade_settings);
 
-    const scenePromise = sceneEngine.reconcile(state.scene?.scene_id ?? null);
-    
+    let scenePromise = Promise.resolve();
     let audioPromise = Promise.resolve();
+
     if (isJoined) {
+      scenePromise = sceneEngine.reconcile(state.scene?.scene_id ?? null);
       audioPromise = audioEngine.reconcile(state);
     }
 
