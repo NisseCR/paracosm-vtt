@@ -4,17 +4,8 @@ from fastapi.templating import Jinja2Templates
 
 from app.core.config import settings
 from app.models.state import AppState
-from app.schemas.api import LibraryResponse, RootResponse, StateResponse
-from app.schemas.events import (
-    ActiveAmbience,
-    ActivePlaylist,
-    ActiveScene,
-    AmbienceUpdateRequest,
-    FadeUpdateRequest,
-    MusicUpdateRequest,
-    SceneUpdateRequest,
-    VolumeUpdateRequest,
-)
+from app.schemas.api import LibraryResponse, RootResponse, AppStateResponse
+from app.schemas.events import AppStateSyncRequest
 
 router = APIRouter()
 templates = Jinja2Templates(directory=str(settings.templates_dir))
@@ -89,8 +80,8 @@ async def event_stream(request: Request):
     return StreamingResponse(generator(), media_type="text/event-stream")
 
 
-@router.get("/api/state", response_model=StateResponse)
-async def get_state(request: Request) -> StateResponse:
+@router.get("/api/state", response_model=AppStateResponse)
+async def get_state(request: Request) -> AppStateResponse:
     """
     Return the current live application state.
 
@@ -121,110 +112,27 @@ async def get_library(request: Request) -> LibraryResponse:
     )
 
 
-@router.post("/api/state/scene", response_model=StateResponse)
-async def set_scene(request: Request, body: SceneUpdateRequest) -> StateResponse:
+@router.post("/api/state/sync", response_model=AppStateResponse)
+async def sync_state(request: Request, body: AppStateSyncRequest) -> AppStateResponse:
     """
-    Update the current scene and broadcast the change.
+    Replace the current application state with a full synced state payload.
+
+    Args:
+        request: The active HTTP request.
+        body: The full desired application state from the GM page.
+
+    Returns:
+        The canonical shared application state.
     """
-    request.app.state.app_state.current_scene = (
-        ActiveScene(scene_id=body.scene_id)
-        if body.scene_id is not None
-        else None
+    request.app.state.app_state = AppState(
+        scene=body.scene,
+        music=body.music,
+        ambiences=body.ambiences,
+        fade_settings=body.fade_settings.model_dump(),
     )
 
     await request.app.state.event_service.broadcast(
-        "scene_changed",
-        {
-            "scene": (
-                request.app.state.app_state.current_scene.model_dump()
-                if request.app.state.app_state.current_scene
-                else None
-            ),
-        },
+        "state_updated",
+        request.app.state.app_state.model_dump(),
     )
-    return request.app.state.app_state
-
-
-@router.post("/api/state/music", response_model=StateResponse)
-async def set_music(request: Request, body: MusicUpdateRequest) -> StateResponse:
-    """
-    Update the current music playlist and broadcast the change.
-    """
-    request.app.state.app_state.current_music_playlist = (
-        ActivePlaylist(playlist_id=body.music_playlist, volume=1.0)
-        if body.music_playlist is not None
-        else None
-    )
-
-    await request.app.state.event_service.broadcast(
-        "music_changed",
-        {
-            "music_playlist": (
-                request.app.state.app_state.current_music_playlist.model_dump()
-                if request.app.state.app_state.current_music_playlist
-                else None
-            ),
-        },
-    )
-    return request.app.state.app_state
-
-
-@router.post("/api/state/ambience", response_model=StateResponse)
-async def set_ambience(request: Request, body: AmbienceUpdateRequest) -> StateResponse:
-    """
-    Update the active ambience map and broadcast the change.
-    """
-    request.app.state.app_state.active_ambiences = body.active_ambiences
-
-    await request.app.state.event_service.broadcast(
-        "ambience_changed",
-        {
-            "active_ambiences": {
-                ambience_id: ambience.model_dump()
-                for ambience_id, ambience in request.app.state.app_state.active_ambiences.items()
-            },
-        },
-    )
-    return request.app.state.app_state
-
-
-@router.post("/api/state/fade", response_model=StateResponse)
-async def set_fade_settings(request: Request, body: FadeUpdateRequest) -> StateResponse:
-    """
-    Update fade settings and broadcast the change.
-    """
-    request.app.state.app_state.fade_settings = body.fade_settings
-    await request.app.state.event_service.broadcast(
-        "fade_settings_changed",
-        {"fade_settings": body.fade_settings},
-    )
-    return request.app.state.app_state
-
-
-@router.post("/api/state/volume", response_model=StateResponse)
-async def set_volumes(request: Request, body: VolumeUpdateRequest) -> StateResponse:
-    """
-    Update runtime volumes for the selected music playlist and active ambience items.
-    """
-    if request.app.state.app_state.current_music_playlist is not None:
-        request.app.state.app_state.current_music_playlist.volume = body.music_volume
-
-    for ambience_id, volume in body.ambience_volumes.items():
-        if ambience_id in request.app.state.app_state.active_ambiences:
-            request.app.state.app_state.active_ambiences[ambience_id].volume = volume
-
-    await request.app.state.event_service.broadcast(
-        "volume_changed",
-        {
-            "music_playlist": (
-                request.app.state.app_state.current_music_playlist.model_dump()
-                if request.app.state.app_state.current_music_playlist
-                else None
-            ),
-            "active_ambiences": {
-                ambience_id: ambience.model_dump()
-                for ambience_id, ambience in request.app.state.app_state.active_ambiences.items()
-            },
-        },
-    )
-    return request.app.state.app_state
+    return AppStateResponse.model_validate(request.app.state.app_state)

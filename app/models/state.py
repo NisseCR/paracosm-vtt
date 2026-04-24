@@ -15,9 +15,9 @@ class AppState(BaseModel):
 
     model_config = ConfigDict(extra="ignore")
 
-    current_scene: ActiveScene | None = None
-    current_music_playlist: ActivePlaylist | None = None
-    active_ambiences: dict[str, ActiveAmbience] = Field(default_factory=dict)
+    scene: ActiveScene | None = None
+    music: ActivePlaylist | None = None
+    ambiences: dict[str, ActiveAmbience] = Field(default_factory=dict)
     fade_settings: dict[str, Any] = Field(
         default_factory=lambda: {
             "music": 5.0,

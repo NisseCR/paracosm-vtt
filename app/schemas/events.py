@@ -1,45 +1,6 @@
-from pydantic import BaseModel
+from typing import Any
 
-
-class SceneUpdateRequest(BaseModel):
-    """
-    Represent a request to change the current scene.
-    """
-
-    scene_id: str | None
-
-
-class MusicUpdateRequest(BaseModel):
-    """
-    Represent a request to change the current music playlist.
-    """
-
-    music_playlist: str | None
-
-
-class ActiveAmbience(BaseModel):
-    """
-    Represent an active ambience item and its runtime settings.
-    """
-
-    ambience_id: str
-    volume: float = 1.0
-
-
-class AmbienceUpdateRequest(BaseModel):
-    """
-    Represent a request to change the active ambience set.
-    """
-
-    active_ambiences: dict[str, ActiveAmbience]
-
-
-class FadeUpdateRequest(BaseModel):
-    """
-    Represent a request to change fade settings.
-    """
-
-    fade_settings: dict[str, float]
+from pydantic import BaseModel, Field
 
 
 class ActiveScene(BaseModel):
@@ -54,20 +15,48 @@ class ActiveScene(BaseModel):
 
 class ActivePlaylist(BaseModel):
     """
-    Represent the currently selected music playlist and its runtime settings.
+    Represent the currently active music playlist.
     """
 
     playlist_id: str
+
+
+class ActiveAmbience(BaseModel):
+    """
+    Represent a single active ambience track and its runtime settings.
+    """
+
+    ambience_id: str
     volume: float = 1.0
 
 
-class VolumeUpdateRequest(BaseModel):
+class FadeSettings(BaseModel):
     """
-    Represent a request to change runtime volumes.
-
-    The current music playlist and active ambience items own their own volume
-    values, so this payload updates those runtime selections.
+    Represent fade durations for the different state categories.
     """
 
-    music_volume: float
-    ambience_volumes: dict[str, float]
+    music: float = 5.0
+    ambience: float = 5.0
+    scene: float = 5.0
+
+
+class AppStateSyncRequest(BaseModel):
+    """
+    Represent the full application state payload sent from the GM page.
+    """
+
+    scene: ActiveScene | None = None
+    music: ActivePlaylist | None = None
+    ambiences: dict[str, ActiveAmbience] = Field(default_factory=dict)
+    fade_settings: FadeSettings = Field(default_factory=FadeSettings)
+
+
+class StateResponse(BaseModel):
+    """
+    Represent the canonical application state returned by the backend.
+    """
+
+    scene: ActiveScene | None = None
+    music: ActivePlaylist | None = None
+    ambiences: dict[str, ActiveAmbience] = Field(default_factory=dict)
+    fade_settings: dict[str, Any] = Field(default_factory=dict)

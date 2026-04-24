@@ -1,12 +1,11 @@
 from pydantic import BaseModel
 
-from app.models.library import AmbienceFolder, MusicPlaylist, SceneDefinition
-from app.models.state import AppState
+from app.schemas.events import ActiveAmbience, ActivePlaylist, ActiveScene, StateResponse
 
 
 class RootResponse(BaseModel):
     """
-    Represent the basic root endpoint response.
+    Represent the application root response.
     """
 
     name: str
@@ -16,17 +15,19 @@ class RootResponse(BaseModel):
 
 class LibraryResponse(BaseModel):
     """
-    Represent the discovered library payload returned to the UI.
+    Represent the discovered media library.
     """
 
-    music_playlists: list[MusicPlaylist]
-    ambience_folders: list[AmbienceFolder]
-    scenes: list[SceneDefinition]
+    music_playlists: list[dict]
+    ambience_folders: list[dict]
+    scenes: list[dict]
 
 
-class StateResponse(AppState):
+class AppStateResponse(StateResponse):
     """
-    Represent the public state payload returned to the UI.
+    Represent the canonical app state returned by state endpoints.
     """
 
-    pass
+    scene: ActiveScene | None = None
+    music: ActivePlaylist | None = None
+    ambiences: dict[str, ActiveAmbience] = {}
