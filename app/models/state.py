@@ -21,7 +21,7 @@ class AppState(BaseModel):
     fade_settings: dict[str, Any] = Field(
         default_factory=lambda: {
             "music": 5.0,
-            "ambience": 10.0,
+            "ambience": 5.0,
             "scene": 5.0,
         }
     )

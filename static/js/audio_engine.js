@@ -395,9 +395,11 @@ class AudioEngine {
     const desiredIds = new Set(Object.keys(desiredAmbiences));
     const activeIds = new Set(this.activeAmbienceSources.keys());
 
+    const tasks = [];
+
     for (const ambienceId of activeIds) {
       if (!desiredIds.has(ambienceId)) {
-        await this.fadeOutAndStopAmbience(ambienceId);
+        tasks.push(this.fadeOutAndStopAmbience(ambienceId));
       }
     }
 
@@ -405,14 +407,19 @@ class AudioEngine {
       const activeEntry = this.activeAmbienceSources.get(ambienceId);
 
       if (!activeEntry) {
-        await this.startAmbience(ambienceId, ambience);
+        tasks.push(this.startAmbience(ambienceId, ambience));
         continue;
       }
 
       const targetVolume = Number(ambience.volume ?? 1.0);
-      await this.fadeGainTo(activeEntry.gainNode, targetVolume, this.fadeSettings.ambience);
-      activeEntry.ambience = ambience;
+      tasks.push(
+        this.fadeGainTo(activeEntry.gainNode, targetVolume, this.fadeSettings.ambience).then(() => {
+          activeEntry.ambience = ambience;
+        })
+      );
     }
+
+    await Promise.all(tasks);
   }
 
   /**
