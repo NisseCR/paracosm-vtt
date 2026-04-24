@@ -99,16 +99,20 @@ class AudioEngine {
       ambiences: this.cloneAmbiences(desiredAmbiences),
     };
 
+    const tasks = [];
+
     if (musicChanged) {
       this.musicState.transitionPromise = this.musicState.transitionPromise.then(() =>
         this.reconcileMusic(desiredMusicPlaylistId)
       );
-      await this.musicState.transitionPromise;
+      tasks.push(this.musicState.transitionPromise);
     }
 
     if (ambienceChanged) {
-      await this.reconcileAmbiences(desiredAmbiences);
+      tasks.push(this.reconcileAmbiences(desiredAmbiences));
     }
+
+    await Promise.all(tasks);
   }
 
   /**
