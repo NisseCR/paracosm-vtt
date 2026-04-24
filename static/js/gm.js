@@ -198,7 +198,7 @@ function renderMusicList(container, library, draftState, ui) {
 }
 
 /**
- * Render ambience toggles.
+ * Render ambience toggles grouped by folder.
  *
  * Args:
  *   container: The ambience list container.
@@ -214,16 +214,25 @@ function renderAmbienceList(container, library, draftState, ui) {
   container.innerHTML = "";
 
   library.ambience_folders.forEach((folder) => {
+    const folderSection = document.createElement("div");
+    folderSection.className = "ambience-folder-section";
+
+    const folderTitle = document.createElement("h3");
+    folderTitle.textContent = folder.name;
+    folderTitle.className = "ambience-folder-title";
+    folderSection.appendChild(folderTitle);
+
+    const tracksGrid = document.createElement("div");
+    tracksGrid.className = "gm-control-group";
+    folderSection.appendChild(tracksGrid);
+
     folder.tracks.forEach((track) => {
       const ambienceId = track.name;
       const isActive = Boolean(draftState.ambiences[ambienceId]);
 
-      const wrapper = document.createElement("div");
-      wrapper.className = "ambience-control";
-
       const toggleButton = document.createElement("button");
       toggleButton.type = "button";
-      toggleButton.textContent = isActive ? `Remove ${track.name}` : `Add ${track.name}`;
+      toggleButton.textContent = track.name;
       toggleButton.classList.toggle("active", isActive);
 
       toggleButton.addEventListener("click", () => {
@@ -239,9 +248,10 @@ function renderAmbienceList(container, library, draftState, ui) {
         renderAll(ui, library, draftState);
       });
 
-      wrapper.appendChild(toggleButton);
-      container.appendChild(wrapper);
+      tracksGrid.appendChild(toggleButton);
     });
+
+    container.appendChild(folderSection);
   });
 }
 
@@ -308,6 +318,10 @@ function bindSyncButton(button, ui, library, draftState) {
   }
 
   button.addEventListener("click", async () => {
+    const originalText = button.textContent;
+    button.disabled = true;
+    button.textContent = "Syncing...";
+
     try {
       const updatedState = await syncState(createSyncPayload(draftState));
 
@@ -321,9 +335,18 @@ function bindSyncButton(button, ui, library, draftState) {
       };
 
       renderAll(ui, library, draftState);
-      console.log("Sync succeeded:", updatedState);
+      button.textContent = "Synced!";
+      setTimeout(() => {
+        button.textContent = originalText;
+        button.disabled = false;
+      }, 1500);
     } catch (error) {
       console.error("Sync failed:", error);
+      button.textContent = "Error";
+      setTimeout(() => {
+        button.textContent = originalText;
+        button.disabled = false;
+      }, 2000);
     }
   });
 }
