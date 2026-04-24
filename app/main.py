@@ -1,6 +1,7 @@
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request, status
+from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 
 from app.core.config import settings
@@ -8,6 +9,11 @@ from app.models.state import AppState
 from app.services.audio_service import AudioService
 from app.services.event_service import EventService
 from app.services.scene_service import SceneService
+from app.services.scene_service import (
+    SceneNotFoundError,
+    SceneAlreadyExistsError,
+    InvalidSceneIdError,
+)
 from app.web.routes import router as web_router
 
 
@@ -48,6 +54,27 @@ def create_app() -> FastAPI:
         A fully configured FastAPI application.
     """
     app = FastAPI(title=settings.app_name, version=settings.app_version, lifespan=lifespan)
+
+    @app.exception_handler(SceneNotFoundError)
+    async def scene_not_found_handler(request: Request, exc: SceneNotFoundError):
+        return JSONResponse(
+            status_code=status.HTTP_404_NOT_FOUND,
+            content={"message": str(exc)},
+        )
+
+    @app.exception_handler(SceneAlreadyExistsError)
+    async def scene_already_exists_handler(request: Request, exc: SceneAlreadyExistsError):
+        return JSONResponse(
+            status_code=status.HTTP_409_CONFLICT,
+            content={"message": str(exc)},
+        )
+
+    @app.exception_handler(InvalidSceneIdError)
+    async def invalid_scene_id_handler(request: Request, exc: InvalidSceneIdError):
+        return JSONResponse(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            content={"message": str(exc)},
+        )
 
     app.include_router(web_router)
 

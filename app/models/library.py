@@ -1,4 +1,12 @@
+from typing import Literal
 from pydantic import BaseModel, Field
+
+
+class AssetEntry(BaseModel):
+    name: str       # file name, e.g. "gate.jpg"
+    url: str        # "/static/assets/images/gate.jpg"
+    size_bytes: int
+    kind: Literal["image", "video"]
 
 
 class SceneLayer(BaseModel):
