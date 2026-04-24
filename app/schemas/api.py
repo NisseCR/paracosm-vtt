@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 
 from app.schemas.events import ActiveAmbience, ActivePlaylist, ActiveScene, StateResponse
 
@@ -27,6 +27,8 @@ class AppStateResponse(StateResponse):
     """
     Represent the canonical app state returned by state endpoints.
     """
+
+    model_config = ConfigDict(from_attributes=True)
 
     scene: ActiveScene | None = None
     music: ActivePlaylist | None = None

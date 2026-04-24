@@ -16,8 +16,8 @@ async function initGmPage() {
   const ui = createUiBindings();
   const draftState = createDraftState(canonicalState);
 
-  renderAll(ui, library, draftState);
-  bindUiEvents(ui, library, draftState);
+  bindFadeControls(ui, draftState);
+  bindSyncButton(ui.syncButton, ui, library, draftState);
   renderAll(ui, library, draftState);
 }
 
@@ -64,6 +64,24 @@ function createDraftState(state) {
 }
 
 /**
+ * Build the sync payload expected by the backend.
+ *
+ * Args:
+ *   draftState: The editable local state.
+ *
+ * Returns:
+ *   A plain JSON-serializable payload.
+ */
+function createSyncPayload(draftState) {
+  return {
+    scene: draftState.scene,
+    music: draftState.music,
+    ambiences: draftState.ambiences,
+    fade_settings: draftState.fade_settings,
+  };
+}
+
+/**
  * Bind all UI handlers for the GM page.
  *
  * Args:
@@ -76,7 +94,6 @@ function bindUiEvents(ui, library, draftState) {
   bindMusicSelection(ui.musicList, ui, library, draftState);
   bindAmbienceSelection(ui.ambienceList, ui, library, draftState);
   bindFadeControls(ui, draftState);
-  bindSyncButton(ui.syncButton, draftState);
 }
 
 /**
@@ -89,9 +106,9 @@ function bindUiEvents(ui, library, draftState) {
  */
 function renderAll(ui, library, draftState) {
   renderCurrentState(ui, draftState);
-  renderSceneList(ui.sceneList, library, draftState);
-  renderMusicList(ui.musicList, library, draftState);
-  renderAmbienceList(ui.ambienceList, library, draftState);
+  renderSceneList(ui.sceneList, library, draftState, ui);
+  renderMusicList(ui.musicList, library, draftState, ui);
+  renderAmbienceList(ui.ambienceList, library, draftState, ui);
   renderFadeControls(ui, draftState);
 }
 
@@ -119,114 +136,9 @@ function renderCurrentState(ui, draftState) {
  *   container: The scene list container.
  *   library: The discovered media library.
  *   draftState: The editable local state.
- */
-function renderSceneList(container, library, draftState) {
-  if (!container) {
-    return;
-  }
-
-  container.innerHTML = "";
-
-  library.scenes.forEach((scene) => {
-    const button = document.createElement("button");
-    button.type = "button";
-    button.textContent = scene.name;
-    button.classList.toggle("active", draftState.scene?.scene_id === scene.id);
-
-    container.appendChild(button);
-  });
-}
-
-/**
- * Render the music selection list.
- *
- * Args:
- *   container: The music list container.
- *   library: The discovered media library.
- *   draftState: The editable local state.
- */
-function renderMusicList(container, library, draftState) {
-  if (!container) {
-    return;
-  }
-
-  container.innerHTML = "";
-
-  library.music_playlists.forEach((playlist) => {
-    const button = document.createElement("button");
-    button.type = "button";
-    button.textContent = playlist.name;
-    button.classList.toggle("active", draftState.music?.playlist_id === playlist.id);
-
-    container.appendChild(button);
-  });
-}
-
-/**
- * Render ambience toggles.
- *
- * Args:
- *   container: The ambience list container.
- *   library: The discovered media library.
- *   draftState: The editable local state.
- */
-function renderAmbienceList(container, library, draftState) {
-  if (!container) {
-    return;
-  }
-
-  container.innerHTML = "";
-
-  library.ambience_folders.forEach((folder) => {
-    folder.tracks.forEach((track) => {
-      const ambienceId = track.name;
-      const isActive = Boolean(draftState.ambiences[ambienceId]);
-
-      const wrapper = document.createElement("div");
-      wrapper.className = "ambience-control";
-
-      const toggleButton = document.createElement("button");
-      toggleButton.type = "button";
-      toggleButton.textContent = isActive ? `Remove ${track.name}` : `Add ${track.name}`;
-      toggleButton.classList.toggle("active", isActive);
-
-      wrapper.appendChild(toggleButton);
-      container.appendChild(wrapper);
-    });
-  });
-}
-
-/**
- * Render fade duration inputs.
- *
- * Args:
  *   ui: DOM element bindings.
- *   draftState: The editable local state.
  */
-function renderFadeControls(ui, draftState) {
-  if (ui.fadeMusic) {
-    ui.fadeMusic.value = draftState.fade_settings.music;
-  }
-
-  if (ui.fadeAmbience) {
-    ui.fadeAmbience.value = draftState.fade_settings.ambience;
-  }
-
-  if (ui.fadeScene) {
-    ui.fadeScene.value = draftState.fade_settings.scene;
-  }
-}
-
-/**
- * Bind scene selection handlers.
- *
- * Args:
- *   container: The scene container.
- *   ui: DOM element bindings.
- *   library: The discovered media library.
- *   draftState: The editable local state.
- */
-function bindSceneSelection(container, ui, library, draftState) {
+function renderSceneList(container, library, draftState, ui) {
   if (!container) {
     return;
   }
@@ -253,15 +165,15 @@ function bindSceneSelection(container, ui, library, draftState) {
 }
 
 /**
- * Bind music selection handlers.
+ * Render the music selection list.
  *
  * Args:
- *   container: The music container.
- *   ui: DOM element bindings.
+ *   container: The music list container.
  *   library: The discovered media library.
  *   draftState: The editable local state.
+ *   ui: DOM element bindings.
  */
-function bindMusicSelection(container, ui, library, draftState) {
+function renderMusicList(container, library, draftState, ui) {
   if (!container) {
     return;
   }
@@ -286,15 +198,15 @@ function bindMusicSelection(container, ui, library, draftState) {
 }
 
 /**
- * Bind ambience toggle handlers.
+ * Render ambience toggles.
  *
  * Args:
- *   container: The ambience container.
- *   ui: DOM element bindings.
+ *   container: The ambience list container.
  *   library: The discovered media library.
  *   draftState: The editable local state.
+ *   ui: DOM element bindings.
  */
-function bindAmbienceSelection(container, ui, library, draftState) {
+function renderAmbienceList(container, library, draftState, ui) {
   if (!container) {
     return;
   }
@@ -334,6 +246,27 @@ function bindAmbienceSelection(container, ui, library, draftState) {
 }
 
 /**
+ * Render fade duration inputs.
+ *
+ * Args:
+ *   ui: DOM element bindings.
+ *   draftState: The editable local state.
+ */
+function renderFadeControls(ui, draftState) {
+  if (ui.fadeMusic) {
+    ui.fadeMusic.value = draftState.fade_settings.music;
+  }
+
+  if (ui.fadeAmbience) {
+    ui.fadeAmbience.value = draftState.fade_settings.ambience;
+  }
+
+  if (ui.fadeScene) {
+    ui.fadeScene.value = draftState.fade_settings.scene;
+  }
+}
+
+/**
  * Bind fade input handlers so they update the draft state.
  *
  * Args:
@@ -365,26 +298,33 @@ function bindFadeControls(ui, draftState) {
  *
  * Args:
  *   button: The sync button element.
+ *   ui: DOM element bindings.
+ *   library: The discovered media library.
  *   draftState: The editable local state.
  */
-function bindSyncButton(button, draftState) {
+function bindSyncButton(button, ui, library, draftState) {
   if (!button) {
     return;
   }
 
   button.addEventListener("click", async () => {
-    const updatedState = await syncState(draftState);
-    draftState.scene = updatedState.scene ?? null;
-    draftState.music = updatedState.music ?? null;
-    draftState.ambiences = structuredClone(updatedState.ambiences ?? {});
-    draftState.fade_settings = {
-      music: updatedState.fade_settings?.music ?? 5.0,
-      ambience: updatedState.fade_settings?.ambience ?? 10.0,
-      scene: updatedState.fade_settings?.scene ?? 5.0,
-    };
+    try {
+      const updatedState = await syncState(createSyncPayload(draftState));
 
-    renderAll(createUiBindings(), { scenes: [], music_playlists: [], ambience_folders: [] }, draftState);
-    window.location.reload();
+      draftState.scene = updatedState.scene ?? null;
+      draftState.music = updatedState.music ?? null;
+      draftState.ambiences = structuredClone(updatedState.ambiences ?? {});
+      draftState.fade_settings = {
+        music: updatedState.fade_settings?.music ?? 5.0,
+        ambience: updatedState.fade_settings?.ambience ?? 10.0,
+        scene: updatedState.fade_settings?.scene ?? 5.0,
+      };
+
+      renderAll(ui, library, draftState);
+      console.log("Sync succeeded:", updatedState);
+    } catch (error) {
+      console.error("Sync failed:", error);
+    }
   });
 }
 
@@ -392,18 +332,18 @@ function bindSyncButton(button, draftState) {
  * Send the full draft state to the backend.
  *
  * Args:
- *   draftState: The editable local state.
+ *   payload: The editable local state payload.
  *
  * Returns:
  *   The canonical backend state.
  */
-async function syncState(draftState) {
+async function syncState(payload) {
   const response = await fetch("/api/state/sync", {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
     },
-    body: JSON.stringify(draftState),
+    body: JSON.stringify(payload),
   });
 
   if (!response.ok) {
