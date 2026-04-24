@@ -11,18 +11,21 @@ router = APIRouter()
 templates = Jinja2Templates(directory=str(settings.templates_dir))
 
 
-@router.get("/", response_model=RootResponse)
-async def root() -> RootResponse:
+@router.get("/", response_class=HTMLResponse)
+async def root(request: Request) -> HTMLResponse:
     """
-    Return a basic health-style response for the application root.
+    Render the home page.
+
+    Args:
+        request: The active HTTP request.
 
     Returns:
-        A small payload describing the application and available pages.
+        The rendered home page HTML response.
     """
-    return RootResponse(
-        name=settings.app_name,
-        status="ok",
-        routes=["/gm", "/display"],
+    return templates.TemplateResponse(
+        request=request,
+        name="index.html",
+        context={},
     )
 
 

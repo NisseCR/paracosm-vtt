@@ -109,18 +109,35 @@ body {
 .gm-page {
   max-width: 1000px;
   margin: 0 auto;
-  padding: 4rem 2rem;
-  font-family: "Georgia", "Times New Roman", serif; /* More immersive, reader-like font */
+  padding: 2rem 2rem 4rem; /* Adjusted for sticky header */
+  font-family: "Georgia", "Times New Roman", serif;
+}
+
+.gm-sticky-top {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  background: rgba(15, 17, 21, 0.8);
+  backdrop-filter: blur(12px);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  padding: 1rem 0;
 }
 
 .gm-header {
+  max-width: 1000px;
+  margin: 0 auto;
+  padding: 0 2rem;
   display: flex;
   flex-direction: column;
+  align-items: stretch;
+  text-align: left;
+}
+
+.gm-header-top {
+  display: flex;
+  justify-content: space-between;
   align-items: center;
-  text-align: center;
-  margin-bottom: 4rem;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-  padding-bottom: 2rem;
+  margin-bottom: 1rem;
 }
 
 .gm-header h1 {
@@ -128,15 +145,16 @@ body {
   font-weight: 300;
   text-transform: uppercase;
   letter-spacing: 0.3em;
-  margin-bottom: 1.5rem;
-  font-size: 1.5rem;
+  margin: 0;
+  font-size: 1.2rem;
   opacity: 0.8;
 }
 
 .gm-status-summary {
   display: flex;
   gap: 2rem;
-  margin-bottom: 2rem;
+  margin-bottom: 1.5rem;
+  flex-wrap: wrap;
 }
 
 .status-item {
@@ -164,14 +182,110 @@ body {
   background: transparent;
   border: 1px solid rgba(255, 255, 255, 0.3);
   color: #fff;
-  padding: 0.75rem 2rem;
+  padding: 0.5rem 1.5rem;
   border-radius: 2rem;
   font-family: Inter, sans-serif;
-  font-size: 0.8rem;
+  font-size: 0.75rem;
   text-transform: uppercase;
   letter-spacing: 0.15em;
   cursor: pointer;
   transition: all 0.3s ease;
+}
+
+.gm-tabs {
+  display: flex;
+  gap: 1rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.tab-button {
+  background: transparent;
+  border: none;
+  color: rgba(255, 255, 255, 0.5);
+  padding: 0.75rem 0;
+  font-family: Inter, sans-serif;
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  cursor: pointer;
+  position: relative;
+  transition: color 0.3s ease;
+}
+
+.tab-button:hover {
+  color: #fff;
+}
+
+.tab-button.active {
+  color: #fff;
+}
+
+.tab-button.active::after {
+  content: "";
+  position: absolute;
+  bottom: -1px;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: #fff;
+}
+
+.gm-tab-panel {
+  display: none;
+}
+
+.gm-tab-panel.active {
+  display: block;
+}
+
+.home-page {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+}
+
+.home-menu {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 2rem;
+  width: 100%;
+  max-width: 800px;
+  margin-top: 2rem;
+}
+
+.menu-item {
+  display: flex;
+  flex-direction: column;
+  padding: 2rem;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 0.5rem;
+  text-decoration: none;
+  color: inherit;
+  transition: all 0.3s ease;
+}
+
+.menu-item:hover {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.3);
+  transform: translateY(-4px);
+}
+
+.menu-title {
+  font-family: Inter, sans-serif;
+  font-size: 1.2rem;
+  text-transform: uppercase;
+  letter-spacing: 0.2em;
+  margin-bottom: 0.5rem;
+  color: #fff;
+}
+
+.menu-desc {
+  font-style: italic;
+  opacity: 0.6;
+  font-size: 0.9rem;
 }
 
 .sync-button:hover {

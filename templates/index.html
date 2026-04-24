@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+
+{% block title %}Immersion - Home{% endblock %}
+
+{% block content %}
+<div class="gm-background" style="background-image: url('/static/assets/images/statues.jpg');"></div>
+<main class="page home-page">
+  <header class="gm-header">
+    <h1>Immersion</h1>
+  </header>
+
+  <nav class="home-menu">
+    <a href="/gm" class="menu-item">
+      <span class="menu-title">Game Master</span>
+      <span class="menu-desc">Control scenes, music, and ambiences.</span>
+    </a>
+    <a href="/display" class="menu-item">
+      <span class="menu-title">Display</span>
+      <span class="menu-desc">The visual and auditory output for players.</span>
+    </a>
+  </nav>
+</main>
+{% endblock %}
+
+{% block scripts %}
+{% endblock %}

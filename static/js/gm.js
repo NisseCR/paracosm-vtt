@@ -16,7 +16,7 @@ async function initGmPage() {
   const ui = createUiBindings();
   const draftState = createDraftState(canonicalState);
 
-  bindFadeControls(ui, draftState);
+  bindUiEvents(ui, library, draftState);
   bindSyncButton(ui.syncButton, ui, library, draftState);
   renderAll(ui, library, draftState);
 }
@@ -31,6 +31,7 @@ function createUiBindings() {
   return {
     currentScene: document.getElementById("current-scene"),
     currentMusic: document.getElementById("current-music"),
+    currentAmbiences: document.getElementById("current-ambiences"),
     sceneList: document.getElementById("scene-list"),
     musicList: document.getElementById("music-list"),
     ambienceList: document.getElementById("ambience-list"),
@@ -38,6 +39,8 @@ function createUiBindings() {
     fadeAmbience: document.getElementById("fade-ambience"),
     fadeScene: document.getElementById("fade-scene"),
     syncButton: document.getElementById("sync-state"),
+    tabButtons: document.querySelectorAll(".tab-button"),
+    tabPanels: document.querySelectorAll(".gm-tab-panel"),
   };
 }
 
@@ -90,10 +93,25 @@ function createSyncPayload(draftState) {
  *   draftState: The editable local state.
  */
 function bindUiEvents(ui, library, draftState) {
-  bindSceneSelection(ui.sceneList, ui, library, draftState);
-  bindMusicSelection(ui.musicList, ui, library, draftState);
-  bindAmbienceSelection(ui.ambienceList, ui, library, draftState);
   bindFadeControls(ui, draftState);
+  bindTabs(ui);
+}
+
+/**
+ * Bind tab button clicks to switch between panels.
+ */
+function bindTabs(ui) {
+  ui.tabButtons.forEach(button => {
+    button.addEventListener("click", () => {
+      const targetTab = button.dataset.tab;
+
+      ui.tabButtons.forEach(btn => btn.classList.toggle("active", btn === button));
+      ui.tabPanels.forEach(panel => {
+        const isTarget = panel.id === `tab-${targetTab}`;
+        panel.classList.toggle("active", isTarget);
+      });
+    });
+  });
 }
 
 /**
@@ -126,6 +144,14 @@ function renderCurrentState(ui, draftState) {
 
   if (ui.currentMusic) {
     ui.currentMusic.textContent = draftState.music?.playlist_id ?? "None";
+  }
+
+  if (ui.currentAmbiences) {
+    const activeAmbiences = Object.keys(draftState.ambiences || {});
+
+    ui.currentAmbiences.textContent = activeAmbiences.length > 0
+      ? activeAmbiences.join(", ")
+      : "None";
   }
 }
 

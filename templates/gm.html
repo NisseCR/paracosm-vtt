@@ -4,9 +4,14 @@
 
 {% block content %}
 <div class="gm-background" style="background-image: url('/static/assets/images/statues.jpg');"></div>
-<main class="page gm-page">
+
+<div class="gm-sticky-top">
   <header class="gm-header">
-    <h1>Immersion GM</h1>
+    <div class="gm-header-top">
+      <h1>Immersion GM</h1>
+      <button id="sync-state" class="sync-button" type="button">Sync Changes</button>
+    </div>
+    
     <div class="gm-status-summary">
       <div class="status-item">
         <span class="label">Scene:</span>
@@ -16,40 +21,51 @@
         <span class="label">Music:</span>
         <span id="current-music" class="value">None</span>
       </div>
+      <div class="status-item">
+        <span class="label">Ambiences:</span>
+        <span id="current-ambiences" class="value">None</span>
+      </div>
     </div>
-    <button id="sync-state" class="sync-button" type="button">Sync Changes</button>
-  </header>
 
-  <div class="gm-grid">
-    <section class="gm-section">
-      <h2>Scenes</h2>
+    <nav class="gm-tabs">
+      <button class="tab-button active" data-tab="scenes">Scenes</button>
+      <button class="tab-button" data-tab="music">Music</button>
+      <button class="tab-button" data-tab="ambiences">Ambiences</button>
+      <button class="tab-button" data-tab="config">Config</button>
+    </nav>
+  </header>
+</div>
+
+<main class="page gm-page">
+  <div class="gm-tabs-content">
+    <section id="tab-scenes" class="gm-tab-panel active">
       <div id="scene-list" class="gm-control-group"></div>
     </section>
 
-    <section class="gm-section">
-      <h2>Music</h2>
+    <section id="tab-music" class="gm-tab-panel">
       <div id="music-list" class="gm-control-group"></div>
     </section>
 
-    <section class="gm-section">
-      <h2>Ambiences</h2>
+    <section id="tab-ambiences" class="gm-tab-panel">
       <div id="ambience-list" class="gm-ambience-container"></div>
     </section>
 
-    <section class="gm-section gm-settings">
-      <h2>Fade Durations</h2>
-      <div class="settings-grid">
-        <div class="setting-item">
-          <label for="fade-music">Music</label>
-          <input id="fade-music" type="number" min="0" step="0.1" placeholder="5.0">
-        </div>
-        <div class="setting-item">
-          <label for="fade-ambience">Ambience</label>
-          <input id="fade-ambience" type="number" min="0" step="0.1" placeholder="10.0">
-        </div>
-        <div class="setting-item">
-          <label for="fade-scene">Scene</label>
-          <input id="fade-scene" type="number" min="0" step="0.1" placeholder="5.0">
+    <section id="tab-config" class="gm-tab-panel">
+      <div class="gm-section gm-settings">
+        <h2>Fade Durations</h2>
+        <div class="settings-grid">
+          <div class="setting-item">
+            <label for="fade-music">Music</label>
+            <input id="fade-music" type="number" min="0" step="0.1" placeholder="5.0">
+          </div>
+          <div class="setting-item">
+            <label for="fade-ambience">Ambience</label>
+            <input id="fade-ambience" type="number" min="0" step="0.1" placeholder="10.0">
+          </div>
+          <div class="setting-item">
+            <label for="fade-scene">Scene</label>
+            <input id="fade-scene" type="number" min="0" step="0.1" placeholder="5.0">
+          </div>
         </div>
       </div>
     </section>
