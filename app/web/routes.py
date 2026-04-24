@@ -114,8 +114,8 @@ async def editor_preview_page(request: Request, scene_id: str) -> HTMLResponse:
     """
     return templates.TemplateResponse(
         request=request,
-        name="display.html",
-        context={"preview_mode": True, "scene_id": scene_id},
+        name="editor_preview.html",
+        context={"scene_id": scene_id},
     )
 
 

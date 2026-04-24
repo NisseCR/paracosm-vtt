@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+
+{% block title %}Preview — Paracosm{% endblock %}
+
+{% block content %}
+<main class="display-page">
+  <div id="scene-stage" class="scene-stage">
+    <img id="scene-background" class="scene-background is-hidden"
+         alt="Scene background">
+    <div id="scene-layers" class="scene-layers"></div>
+  </div>
+</main>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  window.PREVIEW_SCENE_ID = "{{ scene_id }}";
+</script>
+<script src="/static/js/scene_engine.js"></script>
+<script src="/static/js/editor_preview.js"></script>
+{% endblock %}

@@ -124,13 +124,17 @@ class SceneEditor {
     const isMissing = !this.availableAssets[isVideo ? "video" : "image"].some(a => a.name === shortName);
     const staticUrl = this._toStaticUrl(shortName, isVideo ? "video" : "image");
 
+    const thumbHtml = isVideo 
+      ? `<video class="layer-thumbnail ${isMissing ? "is-missing" : ""}" src="${staticUrl}" muted preload="metadata" playsinline></video>`
+      : `<img class="layer-thumbnail ${isMissing ? "is-missing" : ""}" src="${staticUrl}" alt="">`;
+
     const card = document.createElement("div");
     card.className = `layer-card ${layer.hidden ? "is-hidden" : ""}`;
     card.dataset.index = index;
     card.innerHTML = `
       <div class="layer-header">
         <div class="layer-drag-handle">☰</div>
-        <img class="layer-thumbnail ${isMissing ? "is-missing" : ""}" src="${staticUrl}" alt="">
+        ${thumbHtml}
         <div class="layer-info">
           <div class="layer-filename" title="${shortName}">${shortName}</div>
           ${isMissing ? '<div class="layer-missing-label">Missing File</div>' : ""}
@@ -226,6 +230,15 @@ class SceneEditor {
       this.updatePreview();
     });
 
+    if (isVideo) {
+      const video = card.querySelector("video.layer-thumbnail");
+      if (video) {
+        video.addEventListener("loadedmetadata", () => {
+          video.currentTime = 0.1;
+        });
+      }
+    }
+
     return card;
   }
 
@@ -283,9 +296,18 @@ class SceneEditor {
       this.deleteBtn.addEventListener("click", () => this.deleteScene(window.SCENE_ID));
     }
 
-    this.popOutBtn.addEventListener("click", () => {
-      window.open(`/editor/${window.SCENE_ID}/preview`, "_blank", "width=1280,height=720");
-    });
+    if (this.popOutBtn) {
+      if (window.SCENE_ID === "new") {
+        this.popOutBtn.disabled = true;
+        this.popOutBtn.title = "Save the scene first to pop out the preview";
+        this.popOutBtn.style.opacity = "0.5";
+        this.popOutBtn.style.cursor = "not-allowed";
+      } else {
+        this.popOutBtn.addEventListener("click", () => {
+          window.open(`/editor/${window.SCENE_ID}/preview`, "_blank", "width=1280,height=720");
+        });
+      }
+    }
 
     window.addEventListener("keydown", (e) => {
       if ((e.ctrlKey || e.metaKey) && e.key === "s") {
