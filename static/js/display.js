@@ -1,8 +1,8 @@
 /**
  * Initialize the display page behavior.
  *
- * This file is only responsible for bootstrapping the scene engine, wiring SSE,
- * and updating the debug display.
+ * This file is only responsible for bootstrapping the scene engine, audio engine,
+ * wiring SSE, and updating the debug display.
  */
 async function initDisplayPage() {
   const eventSource = new EventSource("/events");
@@ -25,11 +25,27 @@ async function initDisplayPage() {
     library.scenes.map((scene) => [scene.id, scene])
   );
 
+  const musicPlaylistMap = new Map(
+    library.music_playlists.map((playlist) => [playlist.id, playlist])
+  );
+
+  const ambienceTrackMap = new Map();
+  library.ambience_folders.forEach((folder) => {
+    folder.tracks.forEach((track) => {
+      ambienceTrackMap.set(track.name, track.url);
+    });
+  });
+
   const sceneEngine = new SceneEngine({
     sceneBackground,
     sceneLayers,
     sceneFadeOverlay,
     sceneMap,
+  });
+
+  const audioEngine = new AudioEngine({
+    musicPlaylistMap,
+    ambienceTrackMap,
   });
 
   /**
@@ -59,21 +75,19 @@ async function initDisplayPage() {
    *   state: The latest state from the backend.
    */
   async function applyState(state) {
-    console.log("Display applying state:", state);
     renderDebugState(state);
     sceneEngine.updateFadeSettings(state.fade_settings);
     await sceneEngine.reconcile(state.scene?.scene_id ?? null);
+    await audioEngine.reconcile(state);
   }
 
   eventSource.addEventListener("state_snapshot", async (event) => {
     const data = JSON.parse(event.data);
-    console.log("Display received state_snapshot:", data);
     await applyState(data);
   });
 
   eventSource.addEventListener("state_updated", async (event) => {
     const data = JSON.parse(event.data);
-    console.log("Display received state_updated:", data);
     await applyState(data);
   });
 
