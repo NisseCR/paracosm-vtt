@@ -165,3 +165,24 @@ This keeps the codebase maintainable and makes it easier to verify that each lay
 
 This project is intended for local use on a single machine, with the GM controlling the display page in real time.  
 The current architecture is intentionally simple so it can grow cleanly as more immersive features are added.
+
+## Editor
+To access the scene editor, navigate to `/editor` or click "Editor" from the home page.
+
+### Happy Path Smoke Test
+1. **Create**: 
+   - Click `+ New Scene`.
+   - Enter Name: `Smoke Test`, ID: `smoke-test`, Background: `gate.jpg`.
+   - Layers (paste): `[{"src": "wind.webm", "type": "video", "opacity": 0.5}]`.
+   - Press `Ctrl+S` or click `Save`.
+   - Verify `smoke-test` appears in the list.
+2. **Edit**:
+   - Click `Edit` on `smoke-test`.
+   - Change Name to `Smoke Test Updated`.
+   - Verify dirty indicator (`*`) appears.
+   - Click `Save`.
+   - Verify the name is updated in the list.
+3. **Delete**:
+   - Click `Delete` on `smoke-test`.
+   - Confirm the dialog.
+   - Verify `smoke-test` is gone from the list.

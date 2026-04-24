@@ -71,6 +71,42 @@ async def display_page(request: Request) -> HTMLResponse:
     )
 
 
+@router.get("/editor", response_class=HTMLResponse)
+async def editor_list_page(request: Request) -> HTMLResponse:
+    """
+    Render the scene editor list page.
+    """
+    return templates.TemplateResponse(
+        request=request,
+        name="editor.html",
+        context={"edit_mode": False},
+    )
+
+
+@router.get("/editor/new", response_class=HTMLResponse)
+async def editor_new_page(request: Request) -> HTMLResponse:
+    """
+    Render the scene editor for a new scene.
+    """
+    return templates.TemplateResponse(
+        request=request,
+        name="editor.html",
+        context={"edit_mode": True, "scene_id": "new"},
+    )
+
+
+@router.get("/editor/{scene_id}", response_class=HTMLResponse)
+async def editor_edit_page(request: Request, scene_id: str) -> HTMLResponse:
+    """
+    Render the scene editor for an existing scene.
+    """
+    return templates.TemplateResponse(
+        request=request,
+        name="editor.html",
+        context={"edit_mode": True, "scene_id": scene_id},
+    )
+
+
 @router.get("/events")
 async def event_stream(request: Request):
     """

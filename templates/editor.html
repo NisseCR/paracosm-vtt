@@ -1,0 +1,99 @@
+{% extends "base.html" %}
+
+{% block title %}
+  {% if edit_mode %}
+    {% if scene_id == 'new' %}New Scene{% else %}Edit Scene: {{ scene_id }}{% endif %}<span id="dirty-indicator" style="display: none;">*</span>
+  {% else %}
+    Scenes
+  {% endif %}
+  — Paracosm
+{% endblock %}
+
+{% block content %}
+<div class="page editor-page">
+  <div class="gm-sticky-top">
+    <div class="gm-header">
+      <div class="gm-header-top">
+        <h1>
+          {% if edit_mode %}
+            {% if scene_id == 'new' %}New Scene{% else %}Edit Scene: {{ scene_id }}{% endif %}<span id="title-dirty-indicator" style="display: none;">*</span>
+          {% else %}
+            Scenes
+          {% endif %}
+        </h1>
+        <div class="header-actions">
+          {% if not edit_mode %}
+            <a href="/editor/new" class="sync-button">+ New Scene</a>
+          {% else %}
+            <button id="save-btn" class="sync-button">Save</button>
+            <a href="/editor" id="cancel-link" class="sync-button" style="border-color: transparent;">Cancel</a>
+            {% if scene_id != 'new' %}
+              <button id="delete-btn" class="sync-button" style="color: #ff4444; border-color: rgba(255, 68, 68, 0.2);">Delete</button>
+            {% endif %}
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="gm-page">
+    <div id="error-area" class="error-msg" style="display: none; margin-bottom: 2rem;"></div>
+
+    {% if not edit_mode %}
+      <div id="scene-list-container" class="gm-section">
+        <table class="editor-table">
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Name</th>
+              <th>Background</th>
+              <th>Layers</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="scene-list-body">
+            <!-- Populated via JS -->
+          </tbody>
+        </table>
+      </div>
+    {% else %}
+      <div class="gm-section">
+        <form id="scene-form" class="editor-form">
+          <div class="form-group">
+            <label for="scene-name">Name</label>
+            <input type="text" id="scene-name" name="name" required placeholder="e.g. Whispering Woods">
+            <div class="field-error" id="error-name"></div>
+          </div>
+
+          <div class="form-group">
+            <label for="scene-id">ID (Slug)</label>
+            <input type="text" id="scene-id" name="id" required placeholder="e.g. whispering-woods"
+                   {% if scene_id != 'new' %}readonly{% endif %}>
+            <div class="field-error" id="error-id"></div>
+          </div>
+
+          <div class="form-group">
+            <label for="scene-background">Background Asset</label>
+            <input type="text" id="scene-background" name="background" required placeholder="e.g. forest.jpg">
+            <div class="field-error" id="error-background"></div>
+          </div>
+
+          <div class="form-group">
+            <label for="scene-layers">Layers (JSON Array)</label>
+            <textarea id="scene-layers" name="layers" rows="15" placeholder='[{"src": "mist.webm", "type": "video", "opacity": 0.5}]'></textarea>
+            <div class="field-error" id="error-layers"></div>
+          </div>
+        </form>
+      </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  window.EDIT_MODE = {{ 'true' if edit_mode else 'false' }};
+  window.SCENE_ID = "{{ scene_id if scene_id else '' }}";
+</script>
+<script src="/static/js/editor.js"></script>
+{% endblock %}

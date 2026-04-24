@@ -532,6 +532,120 @@ body {
   margin: 0;
 }
 
+/* Editor Styles */
+.editor-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: "Montserrat", sans-serif;
+  font-size: 0.85rem;
+}
+
+.editor-table th {
+  text-align: left;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  opacity: 0.4;
+  padding: 1rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.editor-table td {
+  padding: 1rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.editor-table tr:hover td {
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.row-actions {
+  display: flex;
+  gap: 1rem;
+}
+
+.action-link {
+  color: #fff;
+  text-decoration: none;
+  opacity: 0.6;
+  transition: opacity 0.2s;
+}
+
+.action-link:hover {
+  opacity: 1;
+}
+
+.action-link.is-delete {
+  color: #ff4444;
+}
+
+.editor-form {
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+  max-width: 800px;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.form-group label {
+  font-family: "Montserrat", sans-serif;
+  font-weight: 500;
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.15em;
+  opacity: 0.4;
+}
+
+.form-group input,
+.form-group textarea {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: #fff;
+  padding: 0.75rem 1rem;
+  font-family: "EB Garamond", serif;
+  font-size: 1.1rem;
+  border-radius: 0.25rem;
+  outline: none;
+  transition: border-color 0.3s ease;
+}
+
+.form-group textarea {
+  font-family: "Montserrat", monospace;
+  font-size: 0.9rem;
+  resize: vertical;
+}
+
+.form-group input:focus,
+.form-group textarea:focus {
+  border-color: rgba(255, 255, 255, 0.4);
+}
+
+.form-group input[readonly] {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.field-error {
+  color: #ff4444;
+  font-size: 0.8rem;
+  font-family: "Montserrat", sans-serif;
+  margin-top: 0.25rem;
+}
+
+.error-msg {
+  background: rgba(255, 68, 68, 0.1);
+  border: 1px solid rgba(255, 68, 68, 0.3);
+  color: #ff4444;
+  padding: 1rem;
+  border-radius: 0.25rem;
+  font-family: "Montserrat", sans-serif;
+}
+
 @media (max-width: 600px) {
   .gm-page {
     padding: 2rem 1rem;

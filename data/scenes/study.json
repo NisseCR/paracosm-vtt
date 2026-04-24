@@ -1,0 +1,17 @@
+{
+  "id": "study",
+  "name": "study",
+  "background": "study.jpg",
+  "layers": [
+    {
+      "type": null,
+      "opacity": 1.0,
+      "brightness": 1.0,
+      "grayscale": 0.0,
+      "blur": 0.0,
+      "flip": false,
+      "blend_mode": "normal",
+      "src": "lens-warm.webm"
+    }
+  ]
+}
