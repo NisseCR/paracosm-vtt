@@ -1,4 +1,21 @@
 /**
+ * Convert a kebab-case filename to a more readable display name.
+ * (e.g., "dystopic-wind.ogg" -> "Dystopic wind")
+ */
+function formatDisplayName(filename) {
+  if (!filename) return "";
+  
+  // Remove extension
+  const name = filename.replace(/\.[^/.]+$/, "");
+  
+  // Replace hyphens with spaces
+  const spaced = name.replace(/-/g, " ");
+  
+  // Capitalize first letter
+  return spaced.charAt(0).toUpperCase() + spaced.slice(1);
+}
+
+/**
  * Initialize the GM page behavior.
  *
  * The GM page edits a local draft state and syncs the full desired application
@@ -153,7 +170,7 @@ function renderCurrentState(ui, draftState) {
     const activeAmbiences = Object.keys(draftState.ambiences || {});
 
     ui.currentAmbiences.textContent = activeAmbiences.length > 0
-      ? activeAmbiences.join(", ")
+      ? activeAmbiences.map(formatDisplayName).join(", ")
       : "None";
   }
 }
@@ -295,7 +312,7 @@ function renderAmbienceList(container, library, draftState, ui) {
 
       const toggleButton = document.createElement("button");
       toggleButton.type = "button";
-      toggleButton.textContent = track.name;
+      toggleButton.textContent = formatDisplayName(track.name);
       toggleButton.classList.toggle("active", isActive);
 
       toggleButton.addEventListener("click", () => {
