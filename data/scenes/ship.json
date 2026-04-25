@@ -1,6 +1,27 @@
 {
   "id": "ship",
   "name": "Ship",
-  "background": "deck.jpg",
-  "layers": ["wind.webm"]
+  "background": "storm-at-sea.jpg",
+  "layers": [
+    {
+      "type": "video",
+      "opacity": 1.0,
+      "brightness": 1.0,
+      "grayscale": 0.0,
+      "blur": 0.0,
+      "flip": false,
+      "blend_mode": "normal",
+      "src": "snow.webm"
+    },
+    {
+      "type": "video",
+      "opacity": 1.0,
+      "brightness": 1.0,
+      "grayscale": 0.0,
+      "blur": 0.0,
+      "flip": false,
+      "blend_mode": "normal",
+      "src": "lens-cold.webm"
+    }
+  ]
 }
