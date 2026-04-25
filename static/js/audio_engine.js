@@ -242,7 +242,7 @@ class AudioEngine {
     }
 
     const globalVolume = this.volumeSettings.music ?? 1.0;
-    const targetVolume = Number(track.volume ?? this.musicState.playlist?.volume ?? 1.0) * globalVolume;
+    const targetVolume = globalVolume;
 
     if (!track.url) {
       console.warn("Music track has no URL:", track);
@@ -438,7 +438,7 @@ class AudioEngine {
     }
 
     const globalVolume = this.volumeSettings.music ?? 1.0;
-    const targetVolume = Number(track.volume ?? this.musicState.playlist?.volume ?? 1.0) * globalVolume;
+    const targetVolume = globalVolume;
 
     await this.fadeGainTo(this.musicState.gainNode, targetVolume, 0.5); // Short ramp for volume changes
   }
@@ -451,7 +451,7 @@ class AudioEngine {
     const globalVolume = this.volumeSettings.ambience ?? 1.0;
 
     for (const activeEntry of this.activeAmbienceSources.values()) {
-      const targetVolume = Number(activeEntry.ambience.volume ?? 1.0) * globalVolume;
+      const targetVolume = globalVolume;
       tasks.push(this.fadeGainTo(activeEntry.gainNode, targetVolume, 0.5));
     }
 
@@ -485,7 +485,7 @@ class AudioEngine {
       }
 
       const globalVolume = this.volumeSettings.ambience ?? 1.0;
-      const targetVolume = Number(ambience.volume ?? 1.0) * globalVolume;
+      const targetVolume = globalVolume;
       tasks.push(
         this.fadeGainTo(activeEntry.gainNode, targetVolume, this.fadeSettings.ambience).then(() => {
           activeEntry.ambience = ambience;
@@ -532,7 +532,7 @@ class AudioEngine {
 
     const token = Symbol(ambienceId);
     const globalVolume = this.volumeSettings.ambience ?? 1.0;
-    const targetVolume = Number(ambience.volume ?? 1.0) * globalVolume;
+    const targetVolume = globalVolume;
     gainNode.gain.value = 0.0;
 
     this.activeAmbienceSources.set(ambienceId, {

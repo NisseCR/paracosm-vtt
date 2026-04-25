@@ -330,7 +330,6 @@ function renderAmbienceList(container, library, draftState, ui) {
         } else {
           draftState.ambiences[ambienceId] = {
             ambience_id: ambienceId,
-            volume: 1.0,
           };
         }
 

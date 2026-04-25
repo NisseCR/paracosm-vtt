@@ -20,8 +20,8 @@ def test_state_sync_with_volumes(client):
     # Sync with new volumes
     sync_payload = {
         "scene": None,
-        "music": None,
-        "ambiences": {},
+        "music": {"playlist_id": "test-playlist"},
+        "ambiences": {"test-ambience": {"ambience_id": "test-ambience"}},
         "show_debug": True,
         "fade_settings": {"music": 5.0, "ambience": 5.0, "scene": 5.0},
         "volume_settings": {"music": 0.5, "ambience": 0.7}
@@ -32,6 +32,10 @@ def test_state_sync_with_volumes(client):
     data = response.json()
     assert data["volume_settings"]["music"] == 0.5
     assert data["volume_settings"]["ambience"] == 0.7
+    
+    # Assert per-channel volume is NOT in the response
+    assert "volume" not in data["music"]
+    assert "volume" not in data["ambiences"]["test-ambience"]
 
     # Verify state persistence
     response = client.get("/api/state")
@@ -39,13 +43,16 @@ def test_state_sync_with_volumes(client):
     data = response.json()
     assert data["volume_settings"]["music"] == 0.5
     assert data["volume_settings"]["ambience"] == 0.7
+    assert "volume" not in data["music"]
+    assert "volume" not in data["ambiences"]["test-ambience"]
 
 def test_state_sync_backward_compatibility(client):
     # Sync WITHOUT volume_settings (simulating older client)
+    # Also include old per-channel volume fields to ensure they are ignored/stripped
     sync_payload = {
         "scene": None,
-        "music": None,
-        "ambiences": {},
+        "music": {"playlist_id": "test-playlist", "volume": 0.2},
+        "ambiences": {"test-ambience": {"ambience_id": "test-ambience", "volume": 0.3}},
         "show_debug": True,
         "fade_settings": {"music": 5.0, "ambience": 5.0, "scene": 5.0}
     }
@@ -57,3 +64,7 @@ def test_state_sync_backward_compatibility(client):
     assert "volume_settings" in data
     assert data["volume_settings"]["music"] == 1.0
     assert data["volume_settings"]["ambience"] == 1.0
+    
+    # Assert old per-channel volume fields are stripped
+    assert "volume" not in data["music"]
+    assert "volume" not in data["ambiences"]["test-ambience"]

@@ -19,7 +19,6 @@ class ActivePlaylist(BaseModel):
     """
 
     playlist_id: str
-    volume: float = 1.0
 
 
 class ActiveAmbience(BaseModel):
@@ -28,7 +27,6 @@ class ActiveAmbience(BaseModel):
     """
 
     ambience_id: str
-    volume: float = 1.0
 
 
 class FadeSettings(BaseModel):
