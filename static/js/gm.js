@@ -16,6 +16,17 @@ function formatDisplayName(filename) {
 }
 
 /**
+ * Shuffle an array in-place using Fisher-Yates.
+ */
+function shuffleArray(array) {
+  for (let i = array.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [array[i], array[j]] = [array[j], array[i]];
+  }
+  return array;
+}
+
+/**
  * Initialize the GM page behavior.
  *
  * The GM page edits a local draft state and syncs the full desired application
@@ -276,8 +287,12 @@ function renderMusicList(container, library, draftState, ui) {
     button.appendChild(overlay);
 
     button.addEventListener("click", () => {
+      const trackUrls = playlist.tracks.map((t) => t.url);
+      const shuffledOrder = shuffleArray([...trackUrls]);
+
       draftState.music = {
         playlist_id: playlist.id,
+        track_order: shuffledOrder,
       };
       renderAll(ui, library, draftState);
     });

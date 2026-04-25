@@ -41,6 +41,7 @@ class AudioEngine {
     this.musicState = {
       playlistId: null,
       playlist: null,
+      trackOrder: [],
       trackIndex: 0,
       source: null,
       gainNode: null,
@@ -126,7 +127,7 @@ class AudioEngine {
 
     if (musicChanged) {
       this.musicState.transitionPromise = this.musicState.transitionPromise.then(() =>
-        this.reconcileMusic(desiredMusicPlaylistId)
+        this.reconcileMusic(desiredMusicPlaylistId, state.music?.track_order ?? [])
       );
       tasks.push(this.musicState.transitionPromise);
     } else if (musicVolumeChanged && this.musicState.gainNode) {
@@ -150,7 +151,7 @@ class AudioEngine {
    * Args:
    *   playlistId: The desired playlist identifier, or null.
    */
-  async reconcileMusic(playlistId) {
+  async reconcileMusic(playlistId, trackOrder = []) {
     if (!playlistId) {
       await this.fadeOutAndStopMusic();
       return;
@@ -165,9 +166,10 @@ class AudioEngine {
     }
 
     const playlistChanged = this.musicState.playlistId !== playlistId;
+    const orderChanged = JSON.stringify(this.musicState.trackOrder) !== JSON.stringify(trackOrder);
 
-    if (playlistChanged) {
-      await this.switchMusicPlaylist(playlistId, playlist);
+    if (playlistChanged || orderChanged) {
+      await this.switchMusicPlaylist(playlistId, playlist, trackOrder);
       return;
     }
 
@@ -183,11 +185,12 @@ class AudioEngine {
    *   playlistId: The desired playlist identifier.
    *   playlist: The discovered playlist object.
    */
-  async switchMusicPlaylist(playlistId, playlist) {
+  async switchMusicPlaylist(playlistId, playlist, trackOrder = []) {
     const previousState = this.snapshotCurrentMusicState();
 
     this.musicState.playlistId = playlistId;
     this.musicState.playlist = playlist;
+    this.musicState.trackOrder = trackOrder;
     this.musicState.trackIndex = 0;
     this.musicState.failedTrackIndexes = new Set();
 
@@ -218,6 +221,12 @@ class AudioEngine {
     const playlist = this.musicState.playlist;
     if (!playlist || !playlist.tracks || playlist.tracks.length === 0) {
       return null;
+    }
+
+    const trackOrder = this.musicState.trackOrder;
+    if (trackOrder && trackOrder.length > 0) {
+      const trackUrl = trackOrder[this.musicState.trackIndex % trackOrder.length];
+      return playlist.tracks.find((t) => t.url === trackUrl) ?? null;
     }
 
     return playlist.tracks[this.musicState.trackIndex % playlist.tracks.length] ?? null;
@@ -395,11 +404,12 @@ class AudioEngine {
       return;
     }
 
-    const totalTracks = playlist.tracks.length;
+    const trackOrder = this.musicState.trackOrder;
+    const totalToPlay = (trackOrder && trackOrder.length > 0) ? trackOrder.length : playlist.tracks.length;
     let nextIndex = this.musicState.trackIndex;
 
-    for (let i = 0; i < totalTracks; i += 1) {
-      nextIndex = (nextIndex + 1) % totalTracks;
+    for (let i = 0; i < totalToPlay; i += 1) {
+      nextIndex = (nextIndex + 1) % totalToPlay;
 
       if (!this.musicState.failedTrackIndexes.has(nextIndex)) {
         this.musicState.trackIndex = nextIndex;

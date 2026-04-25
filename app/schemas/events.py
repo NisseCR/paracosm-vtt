@@ -19,6 +19,7 @@ class ActivePlaylist(BaseModel):
     """
 
     playlist_id: str
+    track_order: list[str] = Field(default_factory=list)
 
 
 class ActiveAmbience(BaseModel):
