@@ -41,6 +41,15 @@ class FadeSettings(BaseModel):
     scene: float = 5.0
 
 
+class VolumeSettings(BaseModel):
+    """
+    Represent global volume settings for the different audio categories.
+    """
+
+    music: float = 1.0
+    ambience: float = 1.0
+
+
 class AppStateSyncRequest(BaseModel):
     """
     Represent the full application state payload sent from the GM page.
@@ -51,6 +60,7 @@ class AppStateSyncRequest(BaseModel):
     ambiences: dict[str, ActiveAmbience] = Field(default_factory=dict)
     show_debug: bool = True
     fade_settings: FadeSettings = Field(default_factory=FadeSettings)
+    volume_settings: VolumeSettings = Field(default_factory=VolumeSettings)
 
 
 class StateResponse(BaseModel):
@@ -63,3 +73,4 @@ class StateResponse(BaseModel):
     ambiences: dict[str, ActiveAmbience] = Field(default_factory=dict)
     show_debug: bool = True
     fade_settings: dict[str, Any] = Field(default_factory=dict)
+    volume_settings: dict[str, Any] = Field(default_factory=dict)

@@ -55,6 +55,8 @@ function createUiBindings() {
     fadeMusic: document.getElementById("fade-music"),
     fadeAmbience: document.getElementById("fade-ambience"),
     fadeScene: document.getElementById("fade-scene"),
+    volumeMusic: document.getElementById("volume-music"),
+    volumeAmbience: document.getElementById("volume-ambience"),
     showDebug: document.getElementById("show-debug"),
     syncButton: document.getElementById("sync-state"),
     tabButtons: document.querySelectorAll(".tab-button"),
@@ -82,6 +84,10 @@ function createDraftState(state) {
       ambience: state.fade_settings?.ambience ?? 10.0,
       scene: state.fade_settings?.scene ?? 5.0,
     },
+    volume_settings: {
+      music: state.volume_settings?.music ?? 1.0,
+      ambience: state.volume_settings?.ambience ?? 1.0,
+    },
   };
 }
 
@@ -101,6 +107,7 @@ function createSyncPayload(draftState) {
     ambiences: draftState.ambiences,
     show_debug: draftState.show_debug,
     fade_settings: draftState.fade_settings,
+    volume_settings: draftState.volume_settings,
   };
 }
 
@@ -114,6 +121,7 @@ function createSyncPayload(draftState) {
  */
 function bindUiEvents(ui, library, draftState) {
   bindFadeControls(ui, draftState);
+  bindVolumeControls(ui, draftState);
   bindTabs(ui);
 }
 
@@ -148,6 +156,7 @@ function renderAll(ui, library, draftState) {
   renderMusicList(ui.musicList, library, draftState, ui);
   renderAmbienceList(ui.ambienceList, library, draftState, ui);
   renderFadeControls(ui, draftState);
+  renderVolumeControls(ui, draftState);
 }
 
 /**
@@ -361,6 +370,23 @@ function renderFadeControls(ui, draftState) {
 }
 
 /**
+ * Render volume slider controls.
+ *
+ * Args:
+ *   ui: DOM element bindings.
+ *   draftState: The editable local state.
+ */
+function renderVolumeControls(ui, draftState) {
+  if (ui.volumeMusic) {
+    ui.volumeMusic.value = draftState.volume_settings.music;
+  }
+
+  if (ui.volumeAmbience) {
+    ui.volumeAmbience.value = draftState.volume_settings.ambience;
+  }
+}
+
+/**
  * Bind fade input handlers so they update the draft state.
  *
  * Args:
@@ -389,6 +415,27 @@ function bindFadeControls(ui, draftState) {
   if (ui.showDebug) {
     ui.showDebug.addEventListener("change", () => {
       draftState.show_debug = ui.showDebug.checked;
+    });
+  }
+}
+
+/**
+ * Bind volume slider handlers so they update the draft state.
+ *
+ * Args:
+ *   ui: DOM element bindings.
+ *   draftState: The editable local state.
+ */
+function bindVolumeControls(ui, draftState) {
+  if (ui.volumeMusic) {
+    ui.volumeMusic.addEventListener("input", () => {
+      draftState.volume_settings.music = Number(ui.volumeMusic.value);
+    });
+  }
+
+  if (ui.volumeAmbience) {
+    ui.volumeAmbience.addEventListener("input", () => {
+      draftState.volume_settings.ambience = Number(ui.volumeAmbience.value);
     });
   }
 }
@@ -423,6 +470,10 @@ function bindSyncButton(button, ui, library, draftState) {
         music: updatedState.fade_settings?.music ?? 5.0,
         ambience: updatedState.fade_settings?.ambience ?? 10.0,
         scene: updatedState.fade_settings?.scene ?? 5.0,
+      };
+      draftState.volume_settings = {
+        music: updatedState.volume_settings?.music ?? 1.0,
+        ambience: updatedState.volume_settings?.ambience ?? 1.0,
       };
 
       renderAll(ui, library, draftState);

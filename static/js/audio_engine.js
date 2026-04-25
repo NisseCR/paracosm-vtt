@@ -28,6 +28,11 @@ class AudioEngine {
       ambience: 5.0,
     };
 
+    this.volumeSettings = {
+      music: 1.0,
+      ambience: 1.0,
+    };
+
     this.currentDesiredState = {
       music: null,
       ambiences: {},
@@ -79,6 +84,19 @@ class AudioEngine {
   }
 
   /**
+   * Update volume settings used by the audio engine.
+   *
+   * Args:
+   *   volumeSettings: The current volume settings object.
+   */
+  updateVolumeSettings(volumeSettings) {
+    this.volumeSettings = {
+      music: Number(volumeSettings?.music ?? 1.0),
+      ambience: Number(volumeSettings?.ambience ?? 1.0),
+    };
+  }
+
+  /**
    * Update the desired audio state and reconcile playback.
    *
    * Args:
@@ -87,12 +105,17 @@ class AudioEngine {
   async reconcile(state) {
     await this.init();
     this.updateFadeSettings(state.fade_settings);
+    
+    const previousVolumeSettings = { ...this.volumeSettings };
+    this.updateVolumeSettings(state.volume_settings);
 
     const desiredMusicPlaylistId = state.music?.playlist_id ?? null;
     const desiredAmbiences = state.ambiences ?? {};
 
     const musicChanged = desiredMusicPlaylistId !== this.currentDesiredState.music?.playlist_id;
     const ambienceChanged = !this.areAmbiencesEqual(desiredAmbiences, this.currentDesiredState.ambiences);
+    const musicVolumeChanged = this.volumeSettings.music !== previousVolumeSettings.music;
+    const ambienceVolumeChanged = this.volumeSettings.ambience !== previousVolumeSettings.ambience;
 
     this.currentDesiredState = {
       music: state.music ?? null,
@@ -106,10 +129,16 @@ class AudioEngine {
         this.reconcileMusic(desiredMusicPlaylistId)
       );
       tasks.push(this.musicState.transitionPromise);
+    } else if (musicVolumeChanged && this.musicState.gainNode) {
+      // Just update current music volume if it's already playing
+      tasks.push(this.rampMusicToGlobalVolume());
     }
 
     if (ambienceChanged) {
       tasks.push(this.reconcileAmbiences(desiredAmbiences));
+    } else if (ambienceVolumeChanged) {
+      // Just update current ambience volumes if they're already playing
+      tasks.push(this.rampAmbiencesToGlobalVolume());
     }
 
     await Promise.all(tasks);
@@ -212,6 +241,9 @@ class AudioEngine {
       return;
     }
 
+    const globalVolume = this.volumeSettings.music ?? 1.0;
+    const targetVolume = Number(track.volume ?? this.musicState.playlist?.volume ?? 1.0) * globalVolume;
+
     if (!track.url) {
       console.warn("Music track has no URL:", track);
       await this.handleMusicTrackFailure();
@@ -247,7 +279,6 @@ class AudioEngine {
     source.connect(gainNode);
     gainNode.connect(this.masterGain);
 
-    const targetVolume = Number(track.volume ?? this.musicState.playlist?.volume ?? 1.0);
     gainNode.gain.value = shouldCrossfade ? 0.0 : targetVolume;
 
     source.addEventListener("ended", async () => {
@@ -394,6 +425,40 @@ class AudioEngine {
   }
 
   /**
+   * Ramp currently active music track to the current global volume.
+   */
+  async rampMusicToGlobalVolume() {
+    if (!this.musicState.gainNode) {
+      return;
+    }
+
+    const track = this.getCurrentMusicTrack();
+    if (!track) {
+      return;
+    }
+
+    const globalVolume = this.volumeSettings.music ?? 1.0;
+    const targetVolume = Number(track.volume ?? this.musicState.playlist?.volume ?? 1.0) * globalVolume;
+
+    await this.fadeGainTo(this.musicState.gainNode, targetVolume, 0.5); // Short ramp for volume changes
+  }
+
+  /**
+   * Ramp all currently active ambience tracks to the current global volume.
+   */
+  async rampAmbiencesToGlobalVolume() {
+    const tasks = [];
+    const globalVolume = this.volumeSettings.ambience ?? 1.0;
+
+    for (const activeEntry of this.activeAmbienceSources.values()) {
+      const targetVolume = Number(activeEntry.ambience.volume ?? 1.0) * globalVolume;
+      tasks.push(this.fadeGainTo(activeEntry.gainNode, targetVolume, 0.5));
+    }
+
+    await Promise.all(tasks);
+  }
+
+  /**
    * Reconcile active ambience playback.
    *
    * Args:
@@ -419,7 +484,8 @@ class AudioEngine {
         continue;
       }
 
-      const targetVolume = Number(ambience.volume ?? 1.0);
+      const globalVolume = this.volumeSettings.ambience ?? 1.0;
+      const targetVolume = Number(ambience.volume ?? 1.0) * globalVolume;
       tasks.push(
         this.fadeGainTo(activeEntry.gainNode, targetVolume, this.fadeSettings.ambience).then(() => {
           activeEntry.ambience = ambience;
@@ -465,7 +531,8 @@ class AudioEngine {
     gainNode.connect(this.masterGain);
 
     const token = Symbol(ambienceId);
-    const targetVolume = Number(ambience.volume ?? 1.0);
+    const globalVolume = this.volumeSettings.ambience ?? 1.0;
+    const targetVolume = Number(ambience.volume ?? 1.0) * globalVolume;
     gainNode.gain.value = 0.0;
 
     this.activeAmbienceSources.set(ambienceId, {

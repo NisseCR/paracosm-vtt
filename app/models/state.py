@@ -26,3 +26,9 @@ class AppState(BaseModel):
             "scene": 5.0,
         }
     )
+    volume_settings: dict[str, Any] = Field(
+        default_factory=lambda: {
+            "music": 1.0,
+            "ambience": 1.0,
+        }
+    )

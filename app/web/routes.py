@@ -263,6 +263,7 @@ async def sync_state(request: Request, body: AppStateSyncRequest) -> AppStateRes
         ambiences=body.ambiences,
         show_debug=body.show_debug,
         fade_settings=body.fade_settings.model_dump(),
+        volume_settings=body.volume_settings.model_dump(),
     )
 
     await request.app.state.event_service.broadcast(
