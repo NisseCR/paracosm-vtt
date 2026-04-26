@@ -1,0 +1,47 @@
+{
+  "id": "abyssus",
+  "name": "Abyssus",
+  "background": "abyssus.jpg",
+  "layers": [
+    {
+      "type": "video",
+      "opacity": 1.0,
+      "brightness": 1.0,
+      "grayscale": 0.0,
+      "blur": 0.0,
+      "flip": false,
+      "blend_mode": "normal",
+      "src": "mountain.webm"
+    },
+    {
+      "type": "video",
+      "opacity": 1.0,
+      "brightness": 1.0,
+      "grayscale": 0.0,
+      "blur": 0.0,
+      "flip": false,
+      "blend_mode": "normal",
+      "src": "wind-calm.webm"
+    },
+    {
+      "type": "video",
+      "opacity": 1.0,
+      "brightness": 1.0,
+      "grayscale": 0.0,
+      "blur": 0.0,
+      "flip": false,
+      "blend_mode": "normal",
+      "src": "wasteland.webm"
+    },
+    {
+      "type": "video",
+      "opacity": 1.0,
+      "brightness": 1.0,
+      "grayscale": 0.0,
+      "blur": 0.0,
+      "flip": false,
+      "blend_mode": "normal",
+      "src": "lens-cold.webm"
+    }
+  ]
+}
