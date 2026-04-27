@@ -44,6 +44,9 @@ async function initGmPage() {
   const ui = createUiBindings();
   const draftState = createDraftState(canonicalState);
 
+  // Provide initial library to state so we can find names for IDs
+  draftState.library = library;
+
   bindUiEvents(ui, library, draftState);
   bindSyncButton(ui.syncButton, ui, library, draftState);
   renderAll(ui, library, draftState);
@@ -176,12 +179,23 @@ function bindTabs(ui, draftState, library) {
  */
 function renderAll(ui, library, draftState) {
   renderCurrentState(ui, draftState);
+  renderArtControls(ui, draftState);
   renderSceneList(ui.sceneList, library, draftState, ui);
   renderMusicList(ui.musicList, library, draftState, ui);
   renderAmbienceList(ui.ambienceList, library, draftState, ui);
   renderArtLibrary(ui.artList, library.art_library, draftState, ui, library);
   renderFadeControls(ui, draftState);
   renderVolumeControls(ui, draftState);
+}
+
+/**
+ * Render Art tab controls.
+ */
+function renderArtControls(ui, draftState) {
+  if (ui.hideArtButton) {
+    const hasActiveArt = Boolean(draftState.art?.visible && draftState.art?.art_id);
+    ui.hideArtButton.disabled = !hasActiveArt;
+  }
 }
 
 /**
@@ -209,9 +223,12 @@ function renderCurrentState(ui, draftState) {
   }
 
   if (ui.currentArt) {
-    ui.currentArt.textContent = (draftState.art?.visible && draftState.art?.art_id)
-      ? draftState.art.art_id
-      : "None";
+    if (draftState.art?.visible && draftState.art?.art_id) {
+      const artItem = draftState.library?.art_library?.find(a => a.id === draftState.art.art_id);
+      ui.currentArt.textContent = artItem ? artItem.name : draftState.art.art_id;
+    } else {
+      ui.currentArt.textContent = "None";
+    }
   }
 
   if (ui.showDebug) {
@@ -503,6 +520,7 @@ function bindSyncButton(button, ui, library, draftState) {
       draftState.scene = updatedState.scene ?? null;
       draftState.music = updatedState.music ?? null;
       draftState.ambiences = structuredClone(updatedState.ambiences ?? {});
+      draftState.art = structuredClone(updatedState.art ?? { visible: false, art_id: null });
       draftState.show_debug = updatedState.show_debug ?? true;
       draftState.fade_settings = {
         music: updatedState.fade_settings?.music ?? 5.0,
@@ -585,46 +603,45 @@ function renderArtLibrary(container, artLibrary, draftState, ui, library) {
     const h2 = document.createElement("h2");
     h2.textContent = catName;
     section.appendChild(h2);
-
+    
     const grid = document.createElement("div");
     grid.className = "gm-art-grid";
 
     categories[catName].forEach(art => {
-      const card = document.createElement("div");
-      card.className = "gm-card gm-art-card";
-      if (draftState.art?.visible && draftState.art?.art_id === art.id) {
-        card.classList.add("active");
+      const isActive = Boolean(draftState.art?.visible && draftState.art?.art_id === art.id);
+      
+      const button = document.createElement("button");
+      button.type = "button";
+      button.className = "gm-tile-button gm-art-tile";
+      if (isActive) {
+        button.classList.add("active");
       }
 
-      const imgContainer = document.createElement("div");
-      imgContainer.className = "gm-art-thumbnail";
+      button.addEventListener("click", () => {
+        if (isActive) {
+          draftState.art = { visible: false, art_id: null };
+        } else {
+          draftState.art = { visible: true, art_id: art.id };
+        }
+        renderAll(ui, library, draftState);
+      });
+
       const img = document.createElement("img");
       img.src = art.src;
       img.alt = art.name;
-      imgContainer.appendChild(img);
-      card.appendChild(imgContainer);
+      img.className = "tile-art";
+      img.loading = "lazy";
+      button.appendChild(img);
 
-      const info = document.createElement("div");
-      info.className = "gm-card-info";
-      const name = document.createElement("span");
-      name.className = "gm-card-name";
-      name.textContent = art.name;
-      info.appendChild(name);
-      card.appendChild(info);
+      const overlay = document.createElement("div");
+      overlay.className = "tile-overlay";
+      const label = document.createElement("span");
+      label.className = "tile-label";
+      label.textContent = art.name;
+      overlay.appendChild(label);
+      button.appendChild(overlay);
 
-      const actions = document.createElement("div");
-      actions.className = "gm-card-actions";
-      const showBtn = document.createElement("button");
-      showBtn.className = "gm-button";
-      showBtn.textContent = "Show";
-      showBtn.addEventListener("click", () => {
-        draftState.art = { visible: true, art_id: art.id };
-        renderAll(ui, library, draftState);
-      });
-      actions.appendChild(showBtn);
-      card.appendChild(actions);
-
-      grid.appendChild(card);
+      grid.appendChild(button);
     });
 
     section.appendChild(grid);
